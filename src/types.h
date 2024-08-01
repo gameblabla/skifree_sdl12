@@ -28,7 +28,7 @@ typedef struct
 {
     HDC sheetDC;
     HDC sheetDC_1bpp;
-    SDL_Texture* sheet;
+    SDL_Surface* sheet;
     short sheetYOffset;
     short width;
     short height;

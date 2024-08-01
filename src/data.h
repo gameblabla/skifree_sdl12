@@ -427,16 +427,16 @@ Actor blankTemplateActor = {
     0  // flags
 };
 
-SDL_Window* hSkiMainWnd = NULL;
-SDL_Window* hSkiStatusWnd = NULL;
-SDL_Renderer* renderer;
+SDL_Surface* hSkiMainWnd = NULL;
+SDL_Surface* hSkiStatusWnd = NULL;
+//SDL_Renderer* renderer;
 
-SDL_Texture* t = NULL;
+SDL_Surface* t = NULL;
 
-SDL_Texture* largeTextureAtlas;
-SDL_Texture* smallTextureAtlas;
+SDL_Surface* largeTextureAtlas;
+SDL_Surface* smallTextureAtlas;
 
-SDL_Texture* statusWindowTexture;
+SDL_Surface* statusWindowTexture;
 SDL_Surface* statusWindowSurface;
 SDL_TimerID timer_id;
 

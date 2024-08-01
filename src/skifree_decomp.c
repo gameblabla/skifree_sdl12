@@ -11,6 +11,11 @@
 #include <SDL_image.h>
 #include <stdio.h>
 
+#define GAME_BPP 16
+#define RGBSURFACE_BPP 16
+
+int white_color;
+
 #define ski_assert(exp, line) (void)((exp) || (assertFailed(sourceFilename, line), 0)) // TODO remove need for src param.
 
 // int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -47,7 +52,7 @@ int main(int argc, char* argv[]) {
     }
     iVar1 = setupGame();
     if (iVar1 == 0) {
-        SDL_DestroyWindow(hSkiMainWnd);
+        SDL_FreeSurface(hSkiMainWnd);
         cleanupSound();
         return 0;
     }
@@ -69,9 +74,9 @@ int main(int argc, char* argv[]) {
             case SDL_QUIT:
                 is_running = 0;
                 break;
-            case SDL_WINDOWEVENT:
+           /* case SDL_WINDOWEVENT:
                 HandleWindowMessage(&event);
-                break;
+                break;*/
             case SDL_KEYDOWN:
                 handleKeydownMessage(&event);
                 break;
@@ -197,19 +202,19 @@ void drawText(HDC hdc, LPCSTR textStr, short x, short* y, int textLen) {
     SDL_Surface* surface;
     SDL_Color textColor = { 0, 0, 0, 0 };
 
-    surface = TTF_RenderUTF8_Blended_Wrapped(statusWindowFont, textStr, textColor, 255);
+    surface = TTF_RenderUTF8_Blended(statusWindowFont, textStr, textColor);
     SDL_Rect rect;
     rect.x = x;
     rect.y = *y;
     rect.w = surface->w;
     rect.h = surface->h;
-    SDL_BlitSurface(surface, NULL, statusWindowSurface, &rect);
+    SDL_BlitSurface(surface, NULL, statusWindowTexture, &rect);
     SDL_FreeSurface(surface);
     *y = *y + textLineHeight;
 }
 
 void HandleWindowMessage(SDL_Event* e) {
-    switch (e->window.event) {
+   /* switch (e->window.event) {
     case SDL_WINDOWEVENT_FOCUS_GAINED:
         mainWndActivationFlags = 1;
         updateWindowsActiveStatus();
@@ -231,7 +236,7 @@ void HandleWindowMessage(SDL_Event* e) {
     case SDL_WINDOWEVENT_SIZE_CHANGED:
         updateWindowSize(hSkiMainWnd);
         break;
-    }
+    }*/
 }
 
 // TODO not byte accurate.
@@ -356,7 +361,9 @@ Actor* getLinkedActorIfExists(Actor* actor) {
 
 int showErrorMessage(LPCSTR text) {
     // return MessageBoxA(NULL, text, getCachedString(IDS_TITLE), 0x30);
-    return SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, getCachedString(IDS_TITLE), text, hSkiMainWnd);
+   
+	return 0;
+   // return SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, getCachedString(IDS_TITLE), text, hSkiMainWnd);
 }
 
 Actor* addActorOfTypeWithSpriteIdx(int actorType, uint16_t spriteIdx) {
@@ -411,8 +418,8 @@ int initWindows() {
     char* lpWindowName;
     int nWidth;
 
-    SCREEN_WIDTH = 1280;
-    SCREEN_HEIGHT = 1024;
+    SCREEN_WIDTH = 640;
+    SCREEN_HEIGHT = 480;
 
     isPaused = 0;
     // isMinimised = 1;
@@ -455,29 +462,15 @@ int initWindows() {
 
     // original code was asking for overall window size, here we have to convert it
     // to client size to get the correct original ratio
-    nWidth = 1008;
-    nHeight = nWidth * 0.97718253968254f;
+    nWidth = 640;
+    nHeight = 480;
 
-    hSkiMainWnd = SDL_CreateWindow(lpWindowName,
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        nWidth, nHeight,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-
-    renderer = SDL_CreateRenderer(hSkiMainWnd, -1, SDL_RENDERER_ACCELERATED);
-
-    SDL_RendererInfo info;
-    SDL_GetRendererInfo(renderer, &info);
-    printf("Renderer name: %s\n", info.name);
-    printf("Texture formats:\n");
-    for (int i = 0; i < info.num_texture_formats; i++) {
-        printf("%s\n", SDL_GetPixelFormatName(info.texture_formats[i]));
-    }
-
-    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xFF);
-
+	hSkiMainWnd = SDL_SetVideoMode(nWidth, nHeight, GAME_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	white_color = SDL_MapRGB(hSkiMainWnd->format, 255, 255, 255);
+	
     calculateStatusWindowDimensions(hSkiStatusWnd);
-    statusWindowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, statusWindowTotalTextWidth, statusWindowHeight);
+    //statusWindowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, statusWindowTotalTextWidth, statusWindowHeight);
+	statusWindowTexture = SDL_CreateRGBSurface(0, statusWindowTotalTextWidth, statusWindowHeight, RGBSURFACE_BPP, 0, 0, 0, 0);
 
     if (loadBitmaps(hSkiMainWnd) == 0) {
         return 0;
@@ -633,10 +626,10 @@ void togglePausedState() {
     if (isGameTimerRunning != 0) {
         pauseGame();
         str = getCachedString(IDS_PAUSED);
-        SDL_SetWindowTitle(hSkiMainWnd, str);
+        //SDL_SetWindowTitle(hSkiMainWnd, str);
     } else {
         str = getCachedString(IDS_TITLE);
-        SDL_SetWindowTitle(hSkiMainWnd, str);
+        //SDL_SetWindowTitle(hSkiMainWnd, str);
         startGameTimer();
     }
 }
@@ -736,7 +729,7 @@ void handleGameReset() {
             return;
         }
     }
-    SDL_DestroyWindow(hSkiMainWnd);
+    SDL_FreeSurface(hSkiMainWnd);
 }
 
 void handleCharMessage(uint32_t charCode) {
@@ -803,7 +796,10 @@ void mainWindowPaint(HWND param_1) {
     r.top = 0;
     r.bottom = windowClientRect.bottom;
 
-    SDL_RenderClear(renderer);
+    //SDL_RenderClear(renderer);
+
+	
+	SDL_FillRect(hSkiMainWnd, NULL, white_color);
 
     paintActors(NULL, &r);
 
@@ -813,9 +809,14 @@ void mainWindowPaint(HWND param_1) {
     dstrect.y = 0;
     dstrect.w = statusWindowTotalTextWidth;
     dstrect.h = statusWindowHeight;
-    SDL_RenderCopy(renderer, statusWindowTexture, NULL, &dstrect);
+    
+    
+	SDL_BlitSurface(statusWindowTexture, NULL, param_1, &dstrect);
+    //SDL_RenderCopy(renderer, statusWindowTexture, NULL, &dstrect);
 
-    SDL_RenderPresent(renderer);
+   /* SDL_RenderPresent(renderer);*/
+    
+    SDL_Flip(hSkiMainWnd);
 }
 
 void paintActors(HDC hdc, RECT* paintRect) {
@@ -865,11 +866,11 @@ void paintStatusWindow(HWND hWnd) {
     // hbr = (HBRUSH)GetStockObject(4);
     // FrameRect(paint.hdc, &statusBorderRect, hbr);
 
-    SDL_LockTextureToSurface(statusWindowTexture, NULL, &statusWindowSurface);
+   // SDL_LockTextureToSurface(statusWindowTexture, NULL, &statusWindowTexture);
 
-    SDL_FillRect(statusWindowSurface, NULL, SDL_MapRGB(statusWindowSurface->format, 0, 0, 0));
-    SDL_Rect r = { 1, 1, statusWindowSurface->w - 2, statusWindowSurface->h - 2 };
-    SDL_FillRect(statusWindowSurface, &r, SDL_MapRGB(statusWindowSurface->format, 255, 255, 255));
+    SDL_FillRect(statusWindowTexture, NULL, SDL_MapRGB(statusWindowTexture->format, 0, 0, 0));
+    SDL_Rect r = { 1, 1, statusWindowTexture->w - 2, statusWindowTexture->h - 2 };
+    SDL_FillRect(statusWindowTexture, &r, SDL_MapRGB(statusWindowTexture->format, 255, 255, 255));
 
     str = getCachedString(IDS_TIME);
     len = strlen(str);
@@ -889,7 +890,7 @@ void paintStatusWindow(HWND hWnd) {
     formatAndPrintStatusStrings(NULL);
     // EndPaint(hWnd, &paint);
 
-    SDL_UnlockTexture(statusWindowTexture);
+    //SDL_UnlockTexture(statusWindowTexture);
 }
 
 BOOL calculateStatusWindowDimensions(HWND hWnd) {
@@ -1183,6 +1184,7 @@ BOOL loadBitmaps(HWND hWnd) {
 HBITMAP loadBitmapResource(uint32_t resourceId) {
     char filename[256];
 
+	SDL_Surface *tmp, *bitmap;
     // return LoadBitmapA(skiFreeHInstance, MAKEINTRESOURCE(resourceId));
 
     sprintf(filename, "resources/ski32_%d.bmp", resourceId);
@@ -1190,7 +1192,12 @@ HBITMAP loadBitmapResource(uint32_t resourceId) {
 
     embedded_resource_t* res = get_embedded_resource_by_name(filename);
     SDL_RWops* src = SDL_RWFromConstMem(res->content, res->len);
-    SDL_Surface* bitmap = IMG_Load_RW(src, 1);
+    
+	tmp = SDL_LoadBMP_RW(src, 1);
+    //SDL_SetColorKey(tmp, (SDL_SRCCOLORKEY | SDL_RLEACCEL), SDL_MapRGB(tmp->format, 255, 255, 255));
+	bitmap = SDL_DisplayFormat(tmp);
+    SDL_FreeSurface(tmp);
+    
     return bitmap;
 }
 
@@ -1265,7 +1272,7 @@ BOOL changeScratchBitmapSize(short newWidth, short newHeight) {
             scratchBitmap = NULL;
         }
         // h = CreateCompatibleBitmap(mainWindowDC, scratchBitmapWidth, scratchBitmapHeight);
-        scratchBitmap = SDL_CreateRGBSurface(0, scratchBitmapWidth, scratchBitmapHeight, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000);
+        scratchBitmap = SDL_CreateRGBSurface(0, scratchBitmapWidth, scratchBitmapHeight, RGBSURFACE_BPP, 0, 0, 0, 0);
     }
     //     while (h == (HBITMAP)0x0)
     //     {
@@ -2934,7 +2941,9 @@ void updateWindowSize(HWND hWnd) {
     DAT_0040c760 = 0;
     int w, h;
 
-    SDL_GetRendererOutputSize(renderer, &w, &h);
+   // SDL_GetRendererOutputSize(renderer, &w, &h);
+	w = 640;
+	h = 480;
     windowClientRect.right = w;
     windowClientRect.bottom = h;
 
@@ -3014,13 +3023,13 @@ void formatAndPrintStatusStrings(HDC windowDC) {
         }
     }
 
-    SDL_LockTextureToSurface(statusWindowTexture, NULL, &statusWindowSurface);
+   // SDL_LockTextureToSurface(statusWindowTexture, NULL, &statusWindowTexture);
     SDL_Rect rect;
     rect.x = x;
     rect.y = 1;
-    rect.w = statusWindowSurface->w - x - 1;
-    rect.h = statusWindowSurface->h - 2;
-    SDL_FillRect(statusWindowSurface, &rect, SDL_MapRGB(statusWindowSurface->format, 255, 255, 255));
+    rect.w = statusWindowTexture->w - x - 1;
+    rect.h = statusWindowTexture->h - 2;
+    SDL_FillRect(statusWindowTexture, &rect, SDL_MapRGB(statusWindowTexture->format, 255, 255, 255));
 
     len = formatElapsedTime(elapsedTime, strBuf);
     drawText(windowDC, strBuf, x, &y, len);
@@ -3036,7 +3045,7 @@ void formatAndPrintStatusStrings(HDC windowDC) {
     drawText(windowDC, strBuf, x, &y, len);
     statusWindowLastUpdateTime = currentTickCount;
 
-    SDL_UnlockTexture(statusWindowTexture);
+   // SDL_UnlockTexture(statusWindowTexture);
 }
 
 PermObject* addPermObject(PermObjectList* objList, PermObject* permObject) {
@@ -3267,8 +3276,9 @@ void handleKeydownMessage(SDL_Event* e) {
 
     switch (e->key.keysym.sym) {
     case SDLK_ESCAPE:
+		SDL_Quit();
         // ShowWindow(hSkiMainWnd, 6 /*SW_MINIMIZE*/);
-        SDL_MinimizeWindow(hSkiMainWnd);
+       // SDL_MinimizeWindow(hSkiMainWnd);
         return;
     case SDLK_F3:
         togglePausedState(); // TODO this is a jmp rather than a call in the original
@@ -3387,7 +3397,7 @@ void handleKeydownMessage(SDL_Event* e) {
             }
             break;
 
-        case SDLK_KP_7:
+        case SDLK_7:
             if (sVar1 == 0) {
                 actorframeNo = 3;
             }
@@ -3395,7 +3405,7 @@ void handleKeydownMessage(SDL_Event* e) {
 
         case 0x21:
         case 0x69:
-        case SDLK_KP_9:
+        case SDLK_9:
             /* numpad 9
                Up right */
             if (sVar1 == 0) {
@@ -3594,7 +3604,7 @@ BOOL createBitmapSheets(HDC param_1) {
     //     DeleteObject(pHVar1);
     //     return FALSE;
     // }
-    smallBitmapDC = SDL_CreateRGBSurface(0, 32, smallBitmapSheetHeight, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000);
+    smallBitmapDC = SDL_CreateRGBSurface(0, 32, smallBitmapSheetHeight, RGBSURFACE_BPP, 0, 0, 0, 0);
 
     // smallBitmapDC_1bpp = CreateCompatibleDC(param_1);
     // if (smallBitmapDC_1bpp == (HDC)0x0)
@@ -3628,7 +3638,7 @@ BOOL createBitmapSheets(HDC param_1) {
     //     DeleteObject(pHVar1);
     //     return FALSE;
     // }
-    largeBitmapDC = SDL_CreateRGBSurface(0, maxWidth, largeBitmapSheetHeight, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    largeBitmapDC = SDL_CreateRGBSurface(0, maxWidth, largeBitmapSheetHeight, RGBSURFACE_BPP, 0, 0, 0, 0);
     // largeBitmapDC_1bpp = CreateCompatibleDC(param_1);
     // if (largeBitmapDC_1bpp == (HDC)0x0)
     // {
@@ -3680,6 +3690,7 @@ BOOL createBitmapSheets(HDC param_1) {
         dstrect.y = sheetYOffset;
         dstrect.w = bitmap->w;
         dstrect.h = bitmap->h;
+        //SDL_SetColorKey(bitmap, (SDL_SRCCOLORKEY | SDL_RLEACCEL), white_color);
         SDL_BlitSurface(bitmap, NULL, currentSurface, &dstrect);
 
         // BitBlt(sprite->sheetDC, 0, sheetYOffset, bitmap.bmWidth, bitmap.bmHeight, bitmapSourceDC, 0, 0,
@@ -3690,12 +3701,15 @@ BOOL createBitmapSheets(HDC param_1) {
         //  DeleteObject(pvVar2);
     }
 
-    SDL_SetColorKey(largeBitmapDC, SDL_TRUE, SDL_MapRGB(largeBitmapDC->format, 0xFF, 0xFF, 0xFF));
-    SDL_SetColorKey(smallBitmapDC, SDL_TRUE, SDL_MapRGB(smallBitmapDC->format, 0xFF, 0xFF, 0xFF));
+    SDL_SetColorKey(largeBitmapDC, (SDL_SRCCOLORKEY | SDL_RLEACCEL), white_color);
+    SDL_SetColorKey(smallBitmapDC, (SDL_SRCCOLORKEY | SDL_RLEACCEL), white_color);
 
-    largeTextureAtlas = SDL_CreateTextureFromSurface(renderer, largeBitmapDC);
-    smallTextureAtlas = SDL_CreateTextureFromSurface(renderer, smallBitmapDC);
+   // largeTextureAtlas = SDL_CreateTextureFromSurface(renderer, largeBitmapDC);
+    //smallTextureAtlas = SDL_CreateTextureFromSurface(renderer, smallBitmapDC);
 
+	largeTextureAtlas = largeBitmapDC;
+	smallTextureAtlas = smallBitmapDC;
+    
     for (resourceId = 1; (uint16_t)resourceId < 90; resourceId++) {
         sprite = &sprites[resourceId & 0xffff];
         if (sprite->width > 32) {
@@ -3975,7 +3989,9 @@ void drawActor(HDC hdc, Actor* actor) {
             dstrect.y = rect->top;
             dstrect.w = spriteWidth;
             dstrect.h = spriteHeight;
-            SDL_RenderCopy(renderer, sprite->sheet, &srcrect, &dstrect);
+            //SDL_RenderCopy(renderer, sprite->sheet, &srcrect, &dstrect);
+            
+            SDL_BlitSurface(sprite->sheet, &srcrect, hSkiMainWnd, &dstrect);
 
             local_24->flags |= FLAG_1;
             *local_4 = local_24->actorPtr;
