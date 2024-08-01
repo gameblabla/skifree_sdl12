@@ -645,7 +645,7 @@ uint16_t getSpriteIdxForActorType(int actorType) {
 void playSound(int num) 
 {
 #ifdef DREAMCAST
-	snd_sfx_play_chn(num, sfx_dc[num], 255, 0x80);
+	snd_sfx_play_chn(num-1, sfx_dc[num-1], 255, 0x80);
 #endif
     // if (isSoundDisabled == 0)
     // {
