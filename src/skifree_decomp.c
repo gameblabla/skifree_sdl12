@@ -22,7 +22,29 @@ int white_color;
 #include <kos.h>
 #include <dc/video.h>
 #include <dc/pvr.h>
+#include <dc/sound/sound.h>
+#include <dc/sound/sfxmgr.h>
 int keystate_game[5];
+
+#define SE_SOUND_PATH "/cd/snds/"
+
+static sfxhnd_t sfx_dc[11];
+
+const char sounds_dc[11][32] =
+{
+	SE_SOUND_PATH"ouch.adp",
+	SE_SOUND_PATH"whee.adp",
+	SE_SOUND_PATH"woof.adp",
+	SE_SOUND_PATH"oof.adp",
+	SE_SOUND_PATH"dude.adp",
+	SE_SOUND_PATH"myhair.adp",
+	SE_SOUND_PATH"gobble.adp",
+	SE_SOUND_PATH"piddle.adp",
+	SE_SOUND_PATH"argh.adp",
+	SE_SOUND_PATH"pop.adp",
+	SE_SOUND_PATH"ding.adp",
+};
+
 
 mouse_state_t *mstate;
 maple_device_t *cont, *kbd,  *mouse;
@@ -44,6 +66,19 @@ int main(int argc, char* argv[]) {
     }
 
     TTF_Init();
+    
+#ifdef DREAMCAST
+	snd_stream_init();
+	for(int i=0;i<11;i++)
+	{
+		printf("Load SND %d\n", i);
+		if (!sfx_dc[i]) sfx_dc[i] = snd_sfx_load(sounds_dc[i]);	
+	}
+	
+	
+	cdrom_init();
+	cdrom_cdda_play(1, 1+1, 0xF, CDDA_TRACKS);
+#endif
 
     // todo
     // iVar1 = strcmp(lpCmdLine, s_nosound_0040c0fc);
@@ -396,7 +431,8 @@ Actor* updateActorType2_dog(Actor* actor) {
         new_actor = addActorOfTypeWithSpriteIdx(ACTOR_TYPE_17_SIGN, 0x52);
         updateActorPositionMaybe(new_actor, (short)(sVar1 - 4), newY, inAir);
         actorFrameNo = 0x1b;
-        playSound(&sound_8);
+        //playSound(&sound_8);
+         playSound(8);
     }
     new_actor = updateActorPositionWithVelocityMaybe(actor);
     return setActorFrameNo(new_actor, actorFrameNo);
@@ -566,6 +602,9 @@ BOOL loadSound(uint32_t resourceId, Sound* sound) {
     //     sound->soundData = pvVar2;
     //     return TRUE;
     // }
+    
+    
+    
     sound->soundData = NULL;
     return FALSE;
 }
@@ -603,7 +642,11 @@ uint16_t getSpriteIdxForActorType(int actorType) {
     }
 }
 
-void playSound(Sound* sound) {
+void playSound(int num) 
+{
+#ifdef DREAMCAST
+	snd_sfx_play_chn(num, sfx_dc[num], 255, 0x80);
+#endif
     // if (isSoundDisabled == 0)
     // {
     //     if ((sound->soundData == NULL) && (sound->soundResource != NULL))
@@ -861,8 +904,6 @@ void mainWindowPaint(HWND param_1) {
     r.bottom = windowClientRect.bottom;
 
     //SDL_RenderClear(renderer);
-
-	
 	SDL_FillRect(hSkiMainWnd, NULL, white_color);
 
     paintActors(NULL, &r);
@@ -1738,11 +1779,13 @@ Actor* updatePlayerActor(Actor* actor) {
                 ActorframeNo = uint32_t_ARRAY_0040a434[ActorframeNo];
                 if (ActorframeNo == 0x11) {
                     addStylePoints(-0x40);
-                    sound = &sound_1;
+                   // sound = &sound_1;
+                   playSound(1);
                 } else {
-                    sound = &sound_4;
+					playSound(4);
+                   // sound = &sound_4;
                 }
-                playSound(sound);
+                
             }
         }
     }
@@ -2316,7 +2359,8 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
     case ACTOR_TYPE_8_YETI_RIGHT:
         if (actor2 == playerActor) {
             ski_assert(iVar4 == 0, 2393);
-            playSound(&sound_7);
+           // playSound(&sound_7);
+			playSound(7);
             if ((actor2->flags & FLAG_1) != 0) {
                 actor2 = duplicateAndLinkActor(actor2);
             }
@@ -2341,7 +2385,8 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
                 actor1->inAirCounter = 4;
                 //                        LAB_00403cb4:
                 addStylePoints(1);
-                playSound(&sound_2);
+                playSound(2);
+               // playSound(&sound_2);
                 return setActorFrameNo(actor1, 0xd);
             }
             if (sVar9 <= sVar1)
@@ -2349,9 +2394,10 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
             //                LAB_00403bcc:
             actor1->inAirCounter = actor1->verticalVelocityMaybe / 2;
             addStylePoints(1);
-            sound = &sound_2;
+            //sound = &sound_2;
             //                LAB_00403be8:
-            playSound(sound);
+           // playSound(sound);
+            playSound(2);
             return setActorFrameNo(actor1, local_c);
         case ACTOR_TYPE_2_DOG:
         case ACTOR_TYPE_12_SLALOM_FLAG:
@@ -2396,9 +2442,10 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
                 // goto LAB_00403bcc;
                 actor1->inAirCounter = actor1->verticalVelocityMaybe / 2;
                 addStylePoints(1);
-                sound = &sound_2;
+                //sound = &sound_2;
                 //                LAB_00403be8:
-                playSound(sound);
+               // playSound(sound);
+                playSound(2);
                 return setActorFrameNo(actor1, local_c);
             }
         case ACTOR_TYPE_1_BEGINNER:
@@ -2442,7 +2489,8 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
                     return setActorFrameNo(actor1, local_c);
                 }
                 addStylePoints(-0x20);
-                playSound(&sound_1);
+                //playSound(&sound_1);
+                 playSound(1);
                 return setActorFrameNo(actor1, local_c);
             }
             break;
@@ -2452,7 +2500,8 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
                 actor1->inAirCounter = actor1->verticalVelocityMaybe;
                 //                        goto LAB_00403cb4;
                 addStylePoints(1);
-                playSound(&sound_2);
+               // playSound(&sound_2);
+                playSound(2);
                 return setActorFrameNo(actor1, 0xd);
             }
         }
@@ -2463,10 +2512,11 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
         if (iVar4 == 0) {
             addStylePoints(0x14);
         }
-        sound = &sound_6;
+        //sound = &sound_6;
         local_c = (0 < actor2->isInAir) + 0x19;
         //            goto LAB_00403be8;
-        playSound(sound);
+        //playSound(sound);
+         playSound(6);
         return setActorFrameNo(actor1, local_c);
     case ACTOR_TYPE_2_DOG:
         if (((int)local_c < 0x1d) && ((actor2->HorizontalVelMaybe != 0 || (actor2->verticalVelocityMaybe != 0)))) {
@@ -2474,9 +2524,10 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
                 addStylePoints(3);
             }
             local_c = 0x1d;
-            sound = &sound_3;
+            //sound = &sound_3;
             //                goto LAB_00403be8;
-            playSound(sound);
+            //playSound(sound);
+             playSound(3);
             return setActorFrameNo(actor1, local_c);
         }
         break;
@@ -2496,7 +2547,8 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
         case ACTOR_TYPE_16_JUMP:
             if (sVar1 < sVar9) {
                 actor1->inAirCounter = actor1->verticalVelocityMaybe / 2;
-                playSound(&sound_5);
+               // playSound(&sound_5);
+				 playSound(5);
                 return setActorFrameNo(actor1, 0x21);
             }
         }
@@ -2747,7 +2799,8 @@ void updateYeti(PermObject* permObject) {
                         }
                     }
                     sVar9 = (short)dY;
-                    playSound(&sound_9);
+                    //playSound(&sound_9);
+                     playSound(9);
                 }
             }
         }

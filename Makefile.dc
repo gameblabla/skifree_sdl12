@@ -19,17 +19,15 @@ ${OUTPUT}: ${OBJS}
 	${CC} ${CFLAGS} -o ${OUTPUT} ${OBJS} ${LDFLAGS} ${DEFINES} 
 
 sound_convert:
-	ffmpeg -i track1.flac -f s16le -acodec pcm_s16le track1.raw
-	ffmpeg -i track2.flac -f s16le -acodec pcm_s16le track2.raw
-	ffmpeg -i track3.flac -f s16le -acodec pcm_s16le track3.raw
+	ffmpeg -i track1.wav -f s16le -acodec pcm_s16le track1.raw
 	
 pack:
 	rm -f IP.BIN
 	sh-elf-objcopy -R .stack -O binary $(OUTPUT) main.bin
 	${KOS_BASE}/utils/scramble/scramble main.bin ./cd/1ST_READ.BIN
 	makeip ip.txt IP.BIN
-	mkisofs -C 0,$(shell lbacalc track1.raw track2.raw track3.raw) -V SKIFREE -G IP.BIN -joliet -rock -l -o "skifree.iso" ./cd
-	mds4dc -c skifree.mds skifree.iso track1.raw track2.raw track3.raw
+	mkisofs -C 0,$(shell lbacalc track1.raw) -V SKIFREE -G IP.BIN -joliet -rock -l -o "skifree.iso" ./cd
+	mds4dc -c skifree.mds skifree.iso track1.raw 
 	
 pack_emu:
 	rm -f IP.BIN

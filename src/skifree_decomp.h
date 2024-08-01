@@ -22,7 +22,7 @@ void pauseGame(void);
 void togglePausedState(void);
 void freeSoundResource(Sound* sound);
 void cleanupSound(void);
-void playSound(Sound* sound);
+void playSound(int num);
 Actor* addActor(Actor* actor, BOOL insertBack);
 HBITMAP loadBitmapResource(uint32_t resourceId);
 BOOL loadBitmaps(HWND hWnd);
