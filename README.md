@@ -1,3 +1,20 @@
+Skifree SDL 1.2 for Dreamcast
+
+Simple Skifree port for the Sega Dreamcast. Supports only controllers for now.
+Performance is OK but could be better.
+
+### Compiling
+
+Make sure to create a "cd" folder next to the Makefile and put the resources folder in there along with the original files of the game.
+Then compile with
+```sh
+make -f Makefile.dc
+make -f Makefile.dc pack_emu
+```
+
+
+-------
+
 Skifree SDL
 =============================
 

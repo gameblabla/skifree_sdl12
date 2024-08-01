@@ -1,0 +1,43 @@
+CC	= kos-cc
+
+CFLAGS = -D_SDL -DDREAMCAST -DGCW0 -DNOEXIT -Ofast -fdata-sections -ffunction-sections -Isrc -std=gnu99  -DGCW0 -Isrc -I. -flto -Iresources
+CFLAGS += -I/opt/toolchains/dc/kos-ports/SDL/inst/include/ -I/opt/toolchains/dc/kos-ports/SDL_ttf/inst/include/
+LDFLAGS = -lc -lm -lbz2 -lpng -lSDL -lSDL_ttf -lfreetype -lz  -s -flto -Wl,--as-needed -Wl,--gc-sections
+
+DEFINES = -Wall
+OUTPUT = free.elf
+
+SRCDIR		= src
+VPATH		= $(SRCDIR)
+SRC_C		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.c))
+OBJ_C		= $(notdir $(patsubst %.c, %.o, $(SRC_C)))
+OBJS		= $(OBJ_C)
+
+all: ${OUTPUT}
+
+${OUTPUT}: ${OBJS}
+	${CC} ${CFLAGS} -o ${OUTPUT} ${OBJS} ${LDFLAGS} ${DEFINES} 
+
+sound_convert:
+	ffmpeg -i track1.flac -f s16le -acodec pcm_s16le track1.raw
+	ffmpeg -i track2.flac -f s16le -acodec pcm_s16le track2.raw
+	ffmpeg -i track3.flac -f s16le -acodec pcm_s16le track3.raw
+	
+pack:
+	rm -f IP.BIN
+	sh-elf-objcopy -R .stack -O binary $(OUTPUT) main.bin
+	${KOS_BASE}/utils/scramble/scramble main.bin ./cd/1ST_READ.BIN
+	makeip ip.txt IP.BIN
+	mkisofs -C 0,$(shell lbacalc track1.raw track2.raw track3.raw) -V SKIFREE -G IP.BIN -joliet -rock -l -o "skifree.iso" ./cd
+	mds4dc -c skifree.mds skifree.iso track1.raw track2.raw track3.raw
+	
+pack_emu:
+	rm -f IP.BIN
+	sh-elf-objcopy -R .stack -O binary $(OUTPUT) main.bin
+	${KOS_BASE}/utils/scramble/scramble main.bin ./cd/1ST_READ.BIN
+	makeip ip.txt IP.BIN
+	mkisofs -V skifree -G IP.BIN -joliet -rock -l -x cd -o "skifree.iso" ./cd
+	cdi4dc skifree.iso skifree.cdi -d
+	
+clean:
+	rm *.o *.img src/*.o src/sdl/*.o src/dc/*.o src/enemies/*.o ${OUTPUT} *.BIN *.iso *.mds *.mdf *.elf

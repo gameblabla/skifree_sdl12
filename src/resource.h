@@ -31,7 +31,7 @@
 #define IDC_SKI32_DECOMP 109
 #define IDR_MAINFRAME 128
 #define iconSki 134
-#define other 135
+#define others_res 135
 #define IDC_STATIC -1
 
 // https://twitter.com/Foone/status/877023720111353857

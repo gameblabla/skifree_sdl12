@@ -8,13 +8,26 @@
 #include "data.h"
 #include "embedded_resources.h"
 #include "resource.h"
-#include <SDL_image.h>
 #include <stdio.h>
+
+
 
 #define GAME_BPP 16
 #define RGBSURFACE_BPP 16
 
 int white_color;
+
+
+#ifdef DREAMCAST
+#include <kos.h>
+#include <dc/video.h>
+#include <dc/pvr.h>
+int keystate_game[5];
+
+mouse_state_t *mstate;
+maple_device_t *cont, *kbd,  *mouse;
+cont_state_t *state;	
+#endif
 
 #define ski_assert(exp, line) (void)((exp) || (assertFailed(sourceFilename, line), 0)) // TODO remove need for src param.
 
@@ -24,7 +37,7 @@ int main(int argc, char* argv[]) {
     BOOL retVal;
     // MSG msg;
     SDL_Event event;
-
+    
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
         printf("failed to init\n");
         return 1;
@@ -69,19 +82,70 @@ int main(int argc, char* argv[]) {
     int is_running = 1;
     int last_timer = SDL_GetTicks();
     while (is_running) {
+		
+#ifdef DREAMCAST
+		if (!cont)
+		{
+			for(int i=0;i<4;i++)
+			{
+				cont = maple_enum_type(i, MAPLE_FUNC_CONTROLLER);
+				if (cont) break;
+			}
+		}
+		
+		if(cont) state = (cont_state_t *)maple_dev_status(cont);
+		
+		keystate_game[0] = 0;
+		keystate_game[1] = 0;
+		keystate_game[2] = 0;
+		keystate_game[3] = 0;
+		keystate_game[4] = 0;
+			
+		if(state->joyx < -64  || state->buttons & CONT_DPAD_LEFT)
+		{
+			keystate_game[2] = 1;
+			keystate_game[3] = 0;
+		}
+		else if(state->joyx > 64  || state->buttons & CONT_DPAD_RIGHT)
+		{
+			keystate_game[2] = 0;
+			keystate_game[3] = 1;
+		}
+		
+		if(state->joyy < -64 || state->buttons & CONT_DPAD_UP)
+		{
+			keystate_game[0] = 1;
+			keystate_game[1] = 0;
+		}
+		else if(state->joyy > 64 || state->buttons & CONT_DPAD_DOWN)
+		{
+			keystate_game[0] = 0;
+			keystate_game[1] = 1;
+		}
+		
+		if(state->buttons & CONT_A)
+		{
+			keystate_game[4] = 1;
+		}
+		
+		handleKeydownMessage();
+#else
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
             case SDL_QUIT:
                 is_running = 0;
                 break;
-           /* case SDL_WINDOWEVENT:
-                HandleWindowMessage(&event);
-                break;*/
+           //case SDL_WINDOWEVENT:
+            //    HandleWindowMessage(&event);
+            //    break;
             case SDL_KEYDOWN:
                 handleKeydownMessage(&event);
                 break;
             }
         }
+#endif
+        
+
 
         if (isGameTimerRunning && last_timer + 40 < SDL_GetTicks()) {
             timerUpdateFunc();
@@ -3270,10 +3334,16 @@ void setupPermObjects() {
 }
 
 // TODO not byte accurate
+//void handleKeydownMessage(SDL_Event* e) {
+#ifdef DREAMCAST
+void handleKeydownMessage() {
+#else
 void handleKeydownMessage(SDL_Event* e) {
+#endif
     short sVar1;
     uint32_t actorframeNo;
 
+    #if 0
     switch (e->key.keysym.sym) {
     case SDLK_ESCAPE:
 		SDL_Quit();
@@ -3295,14 +3365,153 @@ void handleKeydownMessage(SDL_Event* e) {
     default:
         break;
     }
+    #endif
 
     if (playerActor == NULL) {
         return;
     }
     actorframeNo = playerActor->frameNo;
     sVar1 = playerActor->isInAir;
-    if ((actorframeNo != 0xb) && (actorframeNo != 0x11)) {
-        switch (e->key.keysym.sym) {
+    if ((actorframeNo != 0xb) && (actorframeNo != 0x11)) 
+    {
+		#ifdef DREAMCAST
+		if (keystate_game[1]) // DOWN
+		{
+            if (sVar1 == 0) {
+                actorframeNo = 0;
+				if (keystate_game[2]) // DOWN-LEFT
+				{
+					actorframeNo = 1;
+				}
+				else if (keystate_game[3]) // DOWN-RIGHT
+				{
+					actorframeNo = 4;
+				}
+            }
+
+            else
+            {
+				switch (actorframeNo) {
+				case 0xd:
+					actorframeNo = 0x13;
+					break;
+				case 0x14:
+					actorframeNo = 0xe;
+					break;
+				case 0x15:
+					actorframeNo = 0xf;
+					break;
+				case 0x12:
+					actorframeNo = 0xd;
+					break;
+				case 0x13:
+					actorframeNo = 0x12;
+					break;
+				}
+			}
+		}
+		else if (keystate_game[0]) // UP
+		{
+			if (sVar1 == 0) {
+				if (keystate_game[3]) // UP-RIGHT
+				{
+					actorframeNo = 6;
+				}
+				else if (keystate_game[2]) // UP-LEFT
+				{
+					actorframeNo = 3;
+				}
+
+			}
+			else
+			{
+				switch (actorframeNo) {
+				case 0xd:
+					//                switchD_0040628c_caseD_13:
+					actorframeNo = 0x12;
+					break;
+				case 0x13:
+					//                switchD_0040628c_caseD_12:
+					actorframeNo = 0xd;
+					break;
+				case 0xe:
+					actorframeNo = 0x14;
+					break;
+				case 0xf:
+					actorframeNo = 0x15;
+					break;
+				case 3:
+				case 7:
+				case 0xc:
+					if (playerActor->verticalVelocityMaybe == 0) {
+						actorframeNo = 9;
+						playerActor->verticalVelocityMaybe = -4;
+					}
+					break;
+				case 6:
+				case 8:
+					if (playerActor->verticalVelocityMaybe == 0) {
+						actorframeNo = 10;
+						playerActor->verticalVelocityMaybe = -4;
+					}
+					break;
+				case 0x12:
+					//                switchD_0040628c_caseD_d:
+					actorframeNo = 0x13;
+					break;
+				}
+			}
+		}
+		
+		else if (keystate_game[2]) // LEFT
+		{
+            /* numpad 4
+               left */
+            ski_assert(actorframeNo < 0x16, 0xf63);
+
+            actorframeNo = playerTurnFrameNoTbl[actorframeNo].leftFrameNo;
+            if (actorframeNo == 7) {
+                //                    iVar2 = (int)playerActor->HorizontalVelMaybe - 8;
+                //                    if (iVar2 <= -8) {
+                //                        iVar2 = -8;
+                //                    }
+                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+                playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
+            }
+		}
+		else if (keystate_game[3]) // RIGHT
+		{
+            /* numpad 6, Right */
+            ski_assert(actorframeNo < 0x16, 3947);
+
+            actorframeNo = playerTurnFrameNoTbl[actorframeNo].rightFrameNo;
+            if (actorframeNo == 8) {
+                //                    iVar2 = (int) playerActor->HorizontalVelMaybe + 8;
+                //                    if (iVar2 >= 8) {
+                //                        iVar2 = 8;
+                //                    }
+                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+
+                playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
+            }
+		}
+
+		else if (keystate_game[4]) // Jump-A
+		{
+            if (sVar1 == 0) {
+                playerActor->inAirCounter = 2;
+                actorframeNo = 0xd;
+                if (4 < playerActor->verticalVelocityMaybe) {
+                    playerActor->verticalVelocityMaybe = playerActor->verticalVelocityMaybe + -4;
+                }
+            }
+		}
+		
+		#else
+        switch (e->key.keysym.sym) 
+        {
+		default:
+			break;
         case SDLK_LEFT:
             /* numpad 4
                left */
@@ -3317,8 +3526,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 //                    playerActor->HorizontalVelMaybe = (short) iVar2;
                 playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
             }
-            break;
-
+        break;
         case SDLK_RIGHT:
             /* numpad 6, Right */
             ski_assert(actorframeNo < 0x16, 3947);
@@ -3397,7 +3605,7 @@ void handleKeydownMessage(SDL_Event* e) {
             }
             break;
 
-        case SDLK_7:
+        case SDLK_KP7:
             if (sVar1 == 0) {
                 actorframeNo = 3;
             }
@@ -3405,7 +3613,7 @@ void handleKeydownMessage(SDL_Event* e) {
 
         case 0x21:
         case 0x69:
-        case SDLK_9:
+        case SDLK_KP9:
             /* numpad 9
                Up right */
             if (sVar1 == 0) {
@@ -3415,6 +3623,7 @@ void handleKeydownMessage(SDL_Event* e) {
 
         case 0x23:
         case 0x61:
+        case SDLK_KP1:
             /* numpad 1
                down left */
             if (sVar1 == 0) {
@@ -3424,6 +3633,7 @@ void handleKeydownMessage(SDL_Event* e) {
 
         case 0x22:
         case 99:
+        case SDLK_KP3:
             /* numpad 3
                down right */
             if (sVar1 == 0) {
@@ -3433,6 +3643,7 @@ void handleKeydownMessage(SDL_Event* e) {
 
         case 0x2d:
         case 0x60:
+        case SDLK_KP0:
             /* numpad 0, Insert
                Jump. */
             if (sVar1 == 0) {
@@ -3443,6 +3654,9 @@ void handleKeydownMessage(SDL_Event* e) {
                 }
             }
         }
+		#endif
+
+
     }
 
     if ((actorframeNo != playerActor->frameNo) && (setActorFrameNo(playerActor, actorframeNo), redrawRequired != 0)) {
