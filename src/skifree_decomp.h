@@ -1,6 +1,5 @@
 #include "types.h"
 #include <SDL.h>
-#include <SDL_ttf.h>
 #include <stdlib.h>
 
 typedef SDL_Surface* HBITMAP;

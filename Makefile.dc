@@ -1,8 +1,8 @@
 CC	= kos-cc
 
-CFLAGS = -D_SDL -DDREAMCAST -DGCW0 -DNOEXIT -Ofast -fdata-sections -ffunction-sections -Isrc -std=gnu99  -DGCW0 -Isrc -I. -flto -Iresources
+CFLAGS = -D_SDL -DDREAMCAST -DGCW0 -DNOEXIT -O3 -fomit-frame-pointer -flto -fipa-pta -freorder-blocks-algorithm=simple -m4-single-only -fdata-sections -ffunction-sections -Isrc -std=gnu99  -DGCW0 -Isrc -I. -flto -Iresources
 CFLAGS += -I/opt/toolchains/dc/kos-ports/SDL/inst/include/ -I/opt/toolchains/dc/kos-ports/SDL_ttf/inst/include/
-LDFLAGS = -lc -lm -lbz2 -lpng -lSDL -lSDL_ttf -lfreetype -lz  -s -flto -Wl,--as-needed -Wl,--gc-sections
+LDFLAGS = -lc -lm -lSDL  -s -flto -Wl,--as-needed -Wl,--gc-sections
 
 DEFINES = -Wall
 OUTPUT = free.elf

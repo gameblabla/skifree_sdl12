@@ -20,7 +20,7 @@ CFLAGS 		+= -fprofile-generate=./
 else ifeq ($(PROFILE), APPLY)
 CFLAGS		+= -fprofile-use -fbranch-probabilities
 endif
-LDFLAGS     = -lc -lgcc -lm -lSDL -lSDL_ttf -Wl,--as-needed -Wl,--gc-sections -flto
+LDFLAGS     = -lc -lgcc -lm -lSDL -Wl,--as-needed -Wl,--gc-sections -flto
 
 # Rules to make executable
 $(PRGNAME): $(OBJS)  

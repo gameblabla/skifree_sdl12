@@ -10,12 +10,11 @@
 #include "resource.h"
 #include <stdio.h>
 
-
-
 #define GAME_BPP 16
 #define RGBSURFACE_BPP 16
 
 int white_color;
+int WindowOriginalWidth = 0;
 
 
 #ifdef DREAMCAST
@@ -25,6 +24,8 @@ int white_color;
 #include <dc/sound/sound.h>
 #include <dc/sound/sfxmgr.h>
 int keystate_game[5];
+
+	extern void *sq_set32(void *dest, uint32_t c, size_t n);
 
 #define SE_SOUND_PATH "/cd/snds/"
 
@@ -65,16 +66,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    TTF_Init();
-    
 #ifdef DREAMCAST
 	snd_stream_init();
 	for(int i=0;i<11;i++)
 	{
-		printf("Load SND %d\n", i);
 		if (!sfx_dc[i]) sfx_dc[i] = snd_sfx_load(sounds_dc[i]);	
 	}
-	
 	
 	cdrom_init();
 	cdrom_cdda_play(1, 1+1, 0xF, CDDA_TRACKS);
@@ -295,21 +292,14 @@ int formatElapsedTime(int totalMillis, char* outputString) {
     return strlen(outputString);
 }
 
+extern void print_string(const char *s,const uint16_t fg_color, const uint16_t bg_color, int32_t x, int32_t y, uint16_t* restrict buffer) ;
+#define setPixel(buffer, x,y,c) *((uint16_t* restrict)buffer + ((x) + (y) * 640)) = c;
+
 void drawText(HDC hdc, LPCSTR textStr, short x, short* y, int textLen) {
     // TextOutA(hdc, (int)x, (int)*y, textStr, textLen);
 
-    SDL_Surface* surface;
-    SDL_Color textColor = { 0, 0, 0, 0 };
-
-    surface = TTF_RenderUTF8_Blended(statusWindowFont, textStr, textColor);
-    SDL_Rect rect;
-    rect.x = x;
-    rect.y = *y;
-    rect.w = surface->w;
-    rect.h = surface->h;
-    SDL_BlitSurface(surface, NULL, statusWindowTexture, &rect);
-    SDL_FreeSurface(surface);
-    *y = *y + textLineHeight;
+	print_string((const char*)textStr,  0, SDL_MapRGB(statusWindowTexture->format,255,255,255), x, *y, statusWindowTexture->pixels) ;
+	*y = *y + textLineHeight;
 }
 
 void HandleWindowMessage(SDL_Event* e) {
@@ -571,6 +561,7 @@ int initWindows() {
     calculateStatusWindowDimensions(hSkiStatusWnd);
     //statusWindowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, statusWindowTotalTextWidth, statusWindowHeight);
 	statusWindowTexture = SDL_CreateRGBSurface(0, statusWindowTotalTextWidth, statusWindowHeight, RGBSURFACE_BPP, 0, 0, 0, 0);
+	WindowOriginalWidth = statusWindowTotalTextWidth;
 
     if (loadBitmaps(hSkiMainWnd) == 0) {
         return 0;
@@ -896,6 +887,7 @@ RECT* updateActorSpriteRect(Actor* actor) {
     return &actor->someRect;
 }
 
+
 void mainWindowPaint(HWND param_1) {
     RECT r;
     r.left = 0;
@@ -904,7 +896,13 @@ void mainWindowPaint(HWND param_1) {
     r.bottom = windowClientRect.bottom;
 
     //SDL_RenderClear(renderer);
+#ifdef DREAMCAST
+	sq_set32(hSkiMainWnd->pixels, 0xFFFFFFFF, (640 * 480)*2);
+#else
 	SDL_FillRect(hSkiMainWnd, NULL, white_color);
+#endif
+	
+	
 
     paintActors(NULL, &r);
 
@@ -953,8 +951,9 @@ void statusWindowFindLongestTextString(HDC hdc, short* maxLength, LPCSTR textStr
     // }
 
     int w, h;
+	w = textLength * 8;
+	h = textLength * 8;
 
-    TTF_SizeUTF8(statusWindowFont, textStr, &w, &h);
     if (*maxLength < w) {
         *maxLength = w;
     }
@@ -973,7 +972,12 @@ void paintStatusWindow(HWND hWnd) {
 
    // SDL_LockTextureToSurface(statusWindowTexture, NULL, &statusWindowTexture);
 
+#ifdef DREAMCAST
+	sq_set32(statusWindowTexture->pixels, 0x00000000, (statusWindowTexture->w * statusWindowTexture->h)*2);
+#else
     SDL_FillRect(statusWindowTexture, NULL, SDL_MapRGB(statusWindowTexture->format, 0, 0, 0));
+#endif
+    
     SDL_Rect r = { 1, 1, statusWindowTexture->w - 2, statusWindowTexture->h - 2 };
     SDL_FillRect(statusWindowTexture, &r, SDL_MapRGB(statusWindowTexture->format, 255, 255, 255));
 
@@ -1018,15 +1022,15 @@ BOOL calculateStatusWindowDimensions(HWND hWnd) {
     // {
     //     statusWindowFont = SelectObject(statusWindowDC, statusWindowFont);
     // }
-    embedded_resource_t* res = get_embedded_resource_by_name("resources/vgaoem.fon");
-    SDL_RWops* src = SDL_RWFromConstMem(res->content, res->len);
-    statusWindowFont = TTF_OpenFontRW(src, 1, 12);
-    if (statusWindowFont == NULL) {
-        exit(1);
-    }
+   
+	// No longer using vgaoem - Gameblabla
+    //embedded_resource_t* res = get_embedded_resource_by_name("resources/vgaoem.fon");
+    //SDL_RWops* src = SDL_RWFromConstMem(res->content, res->len);
+    
+    // Hardcoded font size ( TTF_SizeUTF8(statusWindowFont, "Ay", &w, &h);)
+	w = 16;
+	h = 8;
 
-    // GetTextMetricsA(statusWindowDC, &textMetric);
-    TTF_SizeUTF8(statusWindowFont, "Ay", &w, &h);
     textLineHeight = h;
     str = getCachedString(IDS_TIME);
     len = strlen(str);

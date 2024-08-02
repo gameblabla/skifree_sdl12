@@ -480,7 +480,6 @@ Sound sound_8;
 Sound sound_9;
 // LPCTSTR statusWindowNameStrPtr;
 // HGDIOBJ statusWindowFont;
-TTF_Font* statusWindowFont;
 short textLineHeight;
 short statusWindowHeight;
 short statusWindowTotalTextWidth;
