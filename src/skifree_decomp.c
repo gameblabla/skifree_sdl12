@@ -17,6 +17,9 @@
 int white_color;
 int WindowOriginalWidth = 0;
 
+int screen_width_dreamcast = 640;
+
+int screen_height_dreamcast = 480;
 
 #ifdef DREAMCAST
 #include <kos.h>
@@ -24,13 +27,15 @@ int WindowOriginalWidth = 0;
 #include <dc/pvr.h>
 #include <dc/sound/sound.h>
 #include <dc/sound/sfxmgr.h>
-int keystate_game[5];
-
+int keystate_game[8];
+extern void *sq_set16(void *dest, uint32_t c, size_t n);
 extern void *sq_set32(void *dest, uint32_t c, size_t n);
-
+extern void print_string_menu(const char *s,const uint32_t fg_color, const uint32_t bg_color, int32_t x, int32_t y, uint16_t* restrict buffer) ;
+extern void print_string_menu_center (const char *s,const uint32_t fg_color, const uint32_t bg_color,  int32_t y, uint16_t* restrict buffer) ;
 #define SE_SOUND_PATH "/cd/snds/"
 
 static sfxhnd_t sfx_dc[11];
+int caca_game = 0;
 
 const char sounds_dc[11][32] =
 {
@@ -65,13 +70,81 @@ int main(int argc, char* argv[]) {
     BOOL retVal;
     // MSG msg;
     SDL_Event event;
-    
+
+#ifdef DREAMCAST
+
+	caca_game = 0;
+
+	// If no VGA, default to 640x480
+	if(vid_check_cable() == CT_VGA)
+	{
+		screen_width_dreamcast = 320;
+		screen_height_dreamcast = 240;
+
+		vid_set_mode(DM_320x240,PM_RGB565);
+		sq_set32((uint16_t*)vram_l, 0, (320 * 240)*2);
+		print_string_menu_center("Choose your video mode",  0xFFFFFFFF, 0x11111111, 16, (uint16_t*)vram_s);
+		print_string_menu_center("> 640x480      ",  0xFFFFFFFF, 0x11111111, 160, (uint16_t*)vram_s);
+		print_string_menu_center("  960x960 (4:3)",  0xFFFFFFFF, 0x11111111, 176, (uint16_t*)vram_s);
+		for(;;)
+		{
+			if (!cont)
+			{
+				for(int i=0;i<4;i++)
+				{
+					cont = maple_enum_type(i, MAPLE_FUNC_CONTROLLER);
+					if (cont) break;
+				}
+			}
+			
+			if(cont) state = (cont_state_t *)maple_dev_status(cont);
+			
+			if(state->buttons & CONT_DPAD_UP)
+			{
+				sq_set32((uint16_t*)vram_l, 0, (320 * 240)*2);
+				print_string_menu_center("Choose your video mode",  0xFFFFFFFF, 0x11111111, 16, (uint16_t*)vram_s);
+				print_string_menu_center("> 640x480      ",  0xFFFFFFFF, 0x11111111, 160, (uint16_t*)vram_s);
+				print_string_menu_center("  960x960 (4:3)",  0xFFFFFFFF, 0x11111111, 176, (uint16_t*)vram_s);
+				caca_game = 0;
+			}
+			else if(state->buttons & CONT_DPAD_DOWN)
+			{
+				sq_set32((uint16_t*)vram_l, 0, (320 * 240)*2);
+				print_string_menu_center("Choose your video mode",  0xFFFFFFFF, 0x11111111, 16, (uint16_t*)vram_s);
+				
+				print_string_menu_center("960x960 requires either",  0xFFFFFFFF, 0x11111111, 32, (uint16_t*)vram_s);
+				print_string_menu_center("OSSC or DCHDMI",  0xFFFFFFFF, 0x11111111, 42, (uint16_t*)vram_s);
+				
+				print_string_menu_center("  640x480      ",  0xFFFFFFFF, 0x11111111, 160, (uint16_t*)vram_s);
+				print_string_menu_center("> 960x960 (4:3)",  0xFFFFFFFF, 0x11111111, 176, (uint16_t*)vram_s);
+				caca_game = 1;
+			}
+			
+			if(state->buttons & CONT_A)
+			{
+				break;
+			}
+			
+			vid_waitvbl();
+		}
+	}
+	
+	if (caca_game == 0)
+	{
+		screen_width_dreamcast = 640;
+		screen_height_dreamcast = 480;
+	}
+	else
+	{
+		screen_width_dreamcast = 960;
+		screen_height_dreamcast = 960;
+	}
+	
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
         printf("failed to init\n");
         return 1;
     }
-
-#ifdef DREAMCAST
+	
 	snd_stream_init();
 	for(int i=0;i<11;i++)
 	{
@@ -79,7 +152,9 @@ int main(int argc, char* argv[]) {
 	}
 	
 	cdrom_init();
-	cdrom_cdda_play(1, 1+1, 0xF, CDDA_TRACKS);
+	
+	
+	
 #endif
 
     // todo
@@ -137,24 +212,26 @@ int main(int argc, char* argv[]) {
 		keystate_game[2] = 0;
 		keystate_game[3] = 0;
 		keystate_game[4] = 0;
+		keystate_game[5] = 0;
+		keystate_game[6] = 0;
 			
-		if(state->joyx < -64  || state->buttons & CONT_DPAD_LEFT)
+		if(state->buttons & CONT_DPAD_LEFT)
 		{
 			keystate_game[2] = 1;
 			keystate_game[3] = 0;
 		}
-		else if(state->joyx > 64  || state->buttons & CONT_DPAD_RIGHT)
+		else if(state->buttons & CONT_DPAD_RIGHT)
 		{
 			keystate_game[2] = 0;
 			keystate_game[3] = 1;
 		}
 		
-		if(state->joyy < -64 || state->buttons & CONT_DPAD_UP)
+		if(state->buttons & CONT_DPAD_UP)
 		{
 			keystate_game[0] = 1;
 			keystate_game[1] = 0;
 		}
-		else if(state->joyy > 64 || state->buttons & CONT_DPAD_DOWN)
+		else if(state->buttons & CONT_DPAD_DOWN)
 		{
 			keystate_game[0] = 0;
 			keystate_game[1] = 1;
@@ -163,6 +240,17 @@ int main(int argc, char* argv[]) {
 		if(state->buttons & CONT_A)
 		{
 			keystate_game[4] = 1;
+		}
+		
+		if(state->buttons & CONT_B)
+		{
+			keystate_game[6] = 1;
+		}
+		
+		
+		if(state->buttons & CONT_START)
+		{
+			keystate_game[5] = 1;
 		}
 		
 		handleKeydownMessage();
@@ -301,7 +389,7 @@ int formatElapsedTime(int totalMillis, char* outputString) {
 }
 
 extern void print_string(const char *s,const uint32_t fg_color, const uint32_t bg_color, int32_t x, int32_t y, uint16_t* restrict buffer) ;
-#define setPixel(buffer, x,y,c) *((uint32_t* restrict)buffer + ((x) + (y) * 640)) = c;
+#define setPixel(buffer, x,y,c) *((uint32_t* restrict)buffer + ((x) + (y) * screen_width_dreamcast)) = c;
 
 void drawText(HDC hdc, LPCSTR textStr, int32_t x, int32_t* y, int textLen) {
     // TextOutA(hdc, (int)x, (int)*y, textStr, textLen);
@@ -516,8 +604,8 @@ int initWindows() {
     char* lpWindowName;
     int nWidth;
 
-    SCREEN_WIDTH = 640;
-    SCREEN_HEIGHT = 480;
+    SCREEN_WIDTH = screen_width_dreamcast;
+    SCREEN_HEIGHT = screen_height_dreamcast;
 
     isPaused = 0;
     // isMinimised = 1;
@@ -560,11 +648,17 @@ int initWindows() {
 
     // original code was asking for overall window size, here we have to convert it
     // to client size to get the correct original ratio
-    nWidth = 640;
-    nHeight = 480;
+    nWidth = screen_width_dreamcast;
+    nHeight = screen_height_dreamcast;
 
 	hSkiMainWnd = SDL_SetVideoMode(nWidth, nHeight, GAME_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	white_color = SDL_MapRGB(hSkiMainWnd->format, 255, 255, 255);
+	
+	#ifdef DREAMCAST
+	spu_cdda_volume(63, 63);
+	spu_cdda_pan(63, 63);
+	cdrom_cdda_play(1, 1, 0xF, CDDA_TRACKS);
+	#endif
 	
     calculateStatusWindowDimensions(hSkiStatusWnd);
     //statusWindowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, statusWindowTotalTextWidth, statusWindowHeight);
@@ -905,7 +999,7 @@ void mainWindowPaint(HWND param_1) {
 
     //SDL_RenderClear(renderer);
 #ifdef DREAMCAST
-	sq_set32(hSkiMainWnd->pixels, 0xFFFFFFFF, (640 * 480)*2);
+	sq_set32(hSkiMainWnd->pixels, 0xFFFFFFFF, (screen_width_dreamcast * screen_height_dreamcast)*2);
 #else
 	SDL_FillRect(hSkiMainWnd, NULL, white_color);
 #endif
@@ -3071,8 +3165,8 @@ void updateWindowSize(HWND hWnd) {
     int w, h;
 
    // SDL_GetRendererOutputSize(renderer, &w, &h);
-	w = 640;
-	h = 480;
+	w = screen_width_dreamcast;
+	h = screen_height_dreamcast;
     windowClientRect.right = w;
     windowClientRect.bottom = h;
 
@@ -3401,6 +3495,13 @@ void setupPermObjects() {
 // TODO not byte accurate
 //void handleKeydownMessage(SDL_Event* e) {
 #ifdef DREAMCAST
+// Define the key states
+#define KEY_UP    0
+#define KEY_DOWN  1
+#define KEY_LEFT  2
+#define KEY_RIGHT 3
+int timekey = 0;
+
 void handleKeydownMessage() {
 #else
 void handleKeydownMessage(SDL_Event* e) {
@@ -3408,7 +3509,7 @@ void handleKeydownMessage(SDL_Event* e) {
     int32_t sVar1;
     uint32_t actorframeNo;
 
-    #if 0
+    #ifndef DREAMCAST
     switch (e->key.keysym.sym) {
     case SDLK_ESCAPE:
 		SDL_Quit();
@@ -3440,22 +3541,99 @@ void handleKeydownMessage(SDL_Event* e) {
     if ((actorframeNo != 0xb) && (actorframeNo != 0x11)) 
     {
 		#ifdef DREAMCAST
-		if (keystate_game[1]) // DOWN
+		
+		timekey++;
+		
+		//printf("state->joyx %d\n", state->joyx);
+		//printf("state->joyy %d\n", state->joyy);
+		
+		// LEFT
+		if (state->joyx < -7)
 		{
-            if (sVar1 == 0) {
-                actorframeNo = 0;
-				if (keystate_game[2]) // DOWN-LEFT
-				{
-					actorframeNo = 1;
-				}
-				else if (keystate_game[3]) // DOWN-RIGHT
-				{
-					actorframeNo = 4;
-				}
-            }
+			// FAR LEFT
+			actorframeNo = 3;
+			
+			// Slightly FAR LEFT
+			if ((state->joyy < 54 && state->joyy >= 16))
+			{
+				actorframeNo = 2;
+			}
+			// LEFT-DOWN
+			else if (state->joyy >= 54)
+			{
+				actorframeNo = 1;
+			}
+			
+			if (actorframeNo == 7) {
+				playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
+			}
+		}
+		// RIGHT
+		else if (state->joyx > 7)
+		{
+			// FAR RIGHT
+			actorframeNo = 6;
+			
+			// Slightly FAR RIGHT
+			if ((state->joyy < 54 && state->joyy >= 16))
+			{
+				actorframeNo = 5;
+			}
+			// RIGHT
+			else if (state->joyy >= 54 )
+			{
+				actorframeNo = 4;
+			}
+			
+			if (actorframeNo == 8) {
+				playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
+			}
+		}
+		
 
-            else
-            {
+		if (timekey > 40)
+		{
+			if (keystate_game[KEY_LEFT]) 
+			{
+				timekey = 0;
+				ski_assert(actorframeNo < 0x16, 0xf63);
+				actorframeNo = playerTurnFrameNoTbl[actorframeNo].leftFrameNo;
+				if (actorframeNo == 7) {
+					playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
+				}
+
+			}
+			else if (keystate_game[KEY_RIGHT]) 
+			{
+				timekey = 0;
+				ski_assert(actorframeNo < 0x16, 3947);
+				actorframeNo = playerTurnFrameNoTbl[actorframeNo].rightFrameNo;
+				
+				if (actorframeNo == 8) {
+					playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
+				}
+
+			}
+			
+			if (keystate_game[5])
+			{
+				timekey = 0;
+				 togglePausedState();
+			}
+			
+			if (keystate_game[6])
+			{
+				if (playerActor != (Actor*)0x0) {
+					return;
+				}
+				handleGameReset(); // TODO this is a jmp rather than a call in the original
+			}
+		}
+
+		if (keystate_game[KEY_DOWN] || state->joyy > 64) {
+			if (sVar1 == 0) {
+				actorframeNo = 0;
+			} else {
 				switch (actorframeNo) {
 				case 0xd:
 					actorframeNo = 0x13;
@@ -3475,93 +3653,42 @@ void handleKeydownMessage(SDL_Event* e) {
 				}
 			}
 		}
-		else if (keystate_game[0]) // UP
-		{
-			if (sVar1 == 0) {
-				if (keystate_game[3]) // UP-RIGHT
-				{
-					actorframeNo = 6;
+		else if (keystate_game[KEY_UP] || state->joyy < -64) {
+			switch (actorframeNo) {
+			case 0xd:
+				actorframeNo = 0x12;
+				break;
+			case 0x13:
+				actorframeNo = 0xd;
+				break;
+			case 0xe:
+				actorframeNo = 0x14;
+				break;
+			case 0xf:
+				actorframeNo = 0x15;
+				break;
+			case 3:
+			case 7:
+			case 0xc:
+				if (playerActor->verticalVelocityMaybe == 0) {
+					actorframeNo = 9;
+					playerActor->verticalVelocityMaybe = -4;
 				}
-				else if (keystate_game[2]) // UP-LEFT
-				{
-					actorframeNo = 3;
+				break;
+			case 6:
+			case 8:
+				if (playerActor->verticalVelocityMaybe == 0) {
+					actorframeNo = 10;
+					playerActor->verticalVelocityMaybe = -4;
 				}
-
-			}
-			else
-			{
-				switch (actorframeNo) {
-				case 0xd:
-					//                switchD_0040628c_caseD_13:
-					actorframeNo = 0x12;
-					break;
-				case 0x13:
-					//                switchD_0040628c_caseD_12:
-					actorframeNo = 0xd;
-					break;
-				case 0xe:
-					actorframeNo = 0x14;
-					break;
-				case 0xf:
-					actorframeNo = 0x15;
-					break;
-				case 3:
-				case 7:
-				case 0xc:
-					if (playerActor->verticalVelocityMaybe == 0) {
-						actorframeNo = 9;
-						playerActor->verticalVelocityMaybe = -4;
-					}
-					break;
-				case 6:
-				case 8:
-					if (playerActor->verticalVelocityMaybe == 0) {
-						actorframeNo = 10;
-						playerActor->verticalVelocityMaybe = -4;
-					}
-					break;
-				case 0x12:
-					//                switchD_0040628c_caseD_d:
-					actorframeNo = 0x13;
-					break;
-				}
+				break;
+			case 0x12:
+				actorframeNo = 0x13;
+				break;
 			}
 		}
 		
-		else if (keystate_game[2]) // LEFT
-		{
-            /* numpad 4
-               left */
-            ski_assert(actorframeNo < 0x16, 0xf63);
-
-            actorframeNo = playerTurnFrameNoTbl[actorframeNo].leftFrameNo;
-            if (actorframeNo == 7) {
-                //                    iVar2 = (int)playerActor->HorizontalVelMaybe - 8;
-                //                    if (iVar2 <= -8) {
-                //                        iVar2 = -8;
-                //                    }
-                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
-                playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
-            }
-		}
-		else if (keystate_game[3]) // RIGHT
-		{
-            /* numpad 6, Right */
-            ski_assert(actorframeNo < 0x16, 3947);
-
-            actorframeNo = playerTurnFrameNoTbl[actorframeNo].rightFrameNo;
-            if (actorframeNo == 8) {
-                //                    iVar2 = (int) playerActor->HorizontalVelMaybe + 8;
-                //                    if (iVar2 >= 8) {
-                //                        iVar2 = 8;
-                //                    }
-                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
-
-                playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
-            }
-		}
-
-		else if (keystate_game[4]) // Jump-A
+		if (keystate_game[4]) // Jump-A
 		{
             if (sVar1 == 0) {
                 playerActor->inAirCounter = 2;
@@ -3571,7 +3698,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 }
             }
 		}
-		
+
 		#else
         switch (e->key.keysym.sym) 
         {
