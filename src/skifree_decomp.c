@@ -12,6 +12,7 @@
 
 #define GAME_BPP 16
 #define RGBSURFACE_BPP 16
+//#define ASSERTS_DEBUG 1
 
 int white_color;
 int WindowOriginalWidth = 0;
@@ -25,7 +26,7 @@ int WindowOriginalWidth = 0;
 #include <dc/sound/sfxmgr.h>
 int keystate_game[5];
 
-	extern void *sq_set32(void *dest, uint32_t c, size_t n);
+extern void *sq_set32(void *dest, uint32_t c, size_t n);
 
 #define SE_SOUND_PATH "/cd/snds/"
 
@@ -52,7 +53,11 @@ maple_device_t *cont, *kbd,  *mouse;
 cont_state_t *state;	
 #endif
 
+#ifdef ASSERTS_DEBUG
 #define ski_assert(exp, line) (void)((exp) || (assertFailed(sourceFilename, line), 0)) // TODO remove need for src param.
+#else
+#define ski_assert(exp, line)  // TODO remove need for src param.
+#endif
 
 // int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char* argv[]) {
@@ -226,16 +231,19 @@ void assertFailedDialog(LPCSTR lpCaption, LPCSTR lpText) {
     // {
     //     DestroyWindow(hSkiMainWnd);
     // }
+#ifdef ASSERTS_DEBUG
     printf("Assert failed: %s\n", lpText);
     abort();
+#endif
 }
 
 void assertFailed(const char* srcFilename, int lineNumber) {
+#ifdef ASSERTS_DEBUG
     char local_20[32];
-
     sprintf(local_20, s_assertErrorFormat, srcFilename, lineNumber);
     assertFailedDialog(s_Assertion_Failed_0040c0a8, local_20);
     togglePausedState();
+#endif
 }
 
 BOOL doRectsOverlap(RECT* rect1, RECT* rect2) {
@@ -292,10 +300,10 @@ int formatElapsedTime(int totalMillis, char* outputString) {
     return strlen(outputString);
 }
 
-extern void print_string(const char *s,const uint16_t fg_color, const uint16_t bg_color, int32_t x, int32_t y, uint16_t* restrict buffer) ;
-#define setPixel(buffer, x,y,c) *((uint16_t* restrict)buffer + ((x) + (y) * 640)) = c;
+extern void print_string(const char *s,const uint32_t fg_color, const uint32_t bg_color, int32_t x, int32_t y, uint16_t* restrict buffer) ;
+#define setPixel(buffer, x,y,c) *((uint32_t* restrict)buffer + ((x) + (y) * 640)) = c;
 
-void drawText(HDC hdc, LPCSTR textStr, short x, short* y, int textLen) {
+void drawText(HDC hdc, LPCSTR textStr, int32_t x, int32_t* y, int textLen) {
     // TextOutA(hdc, (int)x, (int)*y, textStr, textLen);
 
 	print_string((const char*)textStr,  0, SDL_MapRGB(statusWindowTexture->format,255,255,255), x, *y, statusWindowTexture->pixels) ;
@@ -381,12 +389,12 @@ Actor* updateActorType1_Beginner(Actor* actor) {
 
 // TODO not byte perfect
 Actor* updateActorType2_dog(Actor* actor) {
-    short sVar1;
-    short rand_result;
+    int32_t sVar1;
+    int32_t rand_result;
     Actor* new_actor;
-    short newY;
+    int32_t newY;
     uint32_t actorFrameNo;
-    short inAir;
+    int32_t inAir;
 
     actorFrameNo = actor->frameNo;
     if (actor->typeMaybe != 2) {
@@ -419,7 +427,7 @@ Actor* updateActorType2_dog(Actor* actor) {
         newY = actor->yPosMaybe + -2;
         /* dog wee */
         new_actor = addActorOfTypeWithSpriteIdx(ACTOR_TYPE_17_SIGN, 0x52);
-        updateActorPositionMaybe(new_actor, (short)(sVar1 - 4), newY, inAir);
+        updateActorPositionMaybe(new_actor, (int32_t)(sVar1 - 4), newY, inAir);
         actorFrameNo = 0x1b;
         //playSound(&sound_8);
          playSound(8);
@@ -456,7 +464,7 @@ int showErrorMessage(LPCSTR text) {
    // return SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, getCachedString(IDS_TITLE), text, hSkiMainWnd);
 }
 
-Actor* addActorOfTypeWithSpriteIdx(int actorType, uint16_t spriteIdx) {
+Actor* addActorOfTypeWithSpriteIdx(int actorType, uint32_t spriteIdx) {
     Actor* actor;
 
     actor = getFreeActor();
@@ -473,8 +481,8 @@ Actor* addActorOfTypeWithSpriteIdx(int actorType, uint16_t spriteIdx) {
 
 void setupGameTitleActors() {
     Actor* actor;
-    short x;
-    short y;
+    int32_t x;
+    int32_t y;
 
     y = playerY;
     x = -(sprites[0x35].width / 2) - 40;
@@ -501,7 +509,7 @@ void setupGameTitleActors() {
 /* WARNING: Removing unreachable block (ram,0x004053c9) */
 
 int initWindows() {
-    // short windowWidth;
+    // int32_t windowWidth;
     //  uint32_t uVar2;
     //  BOOL BVar3;
     int nHeight;
@@ -600,7 +608,7 @@ BOOL loadSound(uint32_t resourceId, Sound* sound) {
     return FALSE;
 }
 
-uint16_t getSpriteIdxForActorType(int actorType) {
+uint32_t getSpriteIdxForActorType(int actorType) {
     int rand_result;
 
     switch (actorType) {
@@ -652,9 +660,9 @@ void playSound(int num)
 }
 // TODO problems in byte matching due to deadcode removal.
 Actor* updateActorPositionWithVelocityMaybe(Actor* actor) {
-    short newX;
-    short newY;
-    short inAir;
+    int32_t newX;
+    int32_t newY;
+    int32_t inAir;
 
     newX = actor->xPosMaybe + actor->HorizontalVelMaybe;
     newY = actor->yPosMaybe + actor->verticalVelocityMaybe;
@@ -757,7 +765,7 @@ void enlargeRect(RECT* rect1, RECT* rect2) {
     }
 }
 
-short ski_random(short maxValue) {
+int32_t ski_random(int32_t maxValue) {
     return rand() % maxValue;
 }
 
@@ -835,14 +843,14 @@ void handleCharMessage(uint32_t charCode) {
     case 'X':
         /* 'X' */
         if (playerActor) {
-            updateActorPositionMaybe(playerActor, (short)(playerActor->xPosMaybe - 2), playerActor->yPosMaybe, playerActor->isInAir);
+            updateActorPositionMaybe(playerActor, (int32_t)(playerActor->xPosMaybe - 2), playerActor->yPosMaybe, playerActor->isInAir);
             return;
         }
         break;
     case 'Y':
         /* 'Y' */
         if (playerActor) {
-            updateActorPositionMaybe(playerActor, playerActor->xPosMaybe, (short)(playerActor->yPosMaybe + -2), playerActor->isInAir);
+            updateActorPositionMaybe(playerActor, playerActor->xPosMaybe, (int32_t)(playerActor->yPosMaybe + -2), playerActor->isInAir);
         }
         break;
     case 'f':
@@ -860,14 +868,14 @@ void handleCharMessage(uint32_t charCode) {
     case 'x':
         /* 'x' */
         if (playerActor) {
-            updateActorPositionMaybe(playerActor, (short)(playerActor->xPosMaybe + 2), playerActor->yPosMaybe, playerActor->isInAir);
+            updateActorPositionMaybe(playerActor, (int32_t)(playerActor->xPosMaybe + 2), playerActor->yPosMaybe, playerActor->isInAir);
             return;
         }
         break;
     case 'y':
         /* 'y' */
         if (playerActor) {
-            updateActorPositionMaybe(playerActor, playerActor->xPosMaybe, (short)(playerActor->yPosMaybe + 2), playerActor->isInAir);
+            updateActorPositionMaybe(playerActor, playerActor->xPosMaybe, (int32_t)(playerActor->yPosMaybe + 2), playerActor->isInAir);
             return;
         }
     }
@@ -942,12 +950,12 @@ void paintActors(HDC hdc, RECT* paintRect) {
     drawWindow(hdc, paintRect);
 }
 
-void statusWindowFindLongestTextString(HDC hdc, short* maxLength, LPCSTR textStr, int textLength) {
+void statusWindowFindLongestTextString(HDC hdc, int32_t* maxLength, LPCSTR textStr, int textLength) {
     // SIZE size;
     // GetTextExtentPoint32A(hdc, textStr, textLength, &size);
     // if (*maxLength < size.cx)
     // {
-    //     *maxLength = (short)size.cx;
+    //     *maxLength = (int32_t)size.cx;
     // }
 
     int w, h;
@@ -963,7 +971,7 @@ void statusWindowFindLongestTextString(HDC hdc, short* maxLength, LPCSTR textStr
 void paintStatusWindow(HWND hWnd) {
     char* str;
     int len;
-    short y;
+    int32_t y;
 
     y = 2;
     // BeginPaint(hWnd, &paint);
@@ -1005,8 +1013,8 @@ void paintStatusWindow(HWND hWnd) {
 BOOL calculateStatusWindowDimensions(HWND hWnd) {
     char* str;
     int len;
-    short maxKeyLength;
-    short maxValueLength;
+    int32_t maxKeyLength;
+    int32_t maxValueLength;
     // TEXTMETRIC textMetric;
     int w, h;
 
@@ -1092,8 +1100,8 @@ void resetPermObjectCount() {
 
 BOOL setupGame() {
     Actor* actor;
-    short newY;
-    short inAir;
+    int32_t newY;
+    int32_t inAir;
 
     inAir = 0;
     newY = 0;
@@ -1197,7 +1205,7 @@ void setPointerToNull(PermObjectList* param_1) {
 //             return 0;
 //         case 0x21:
 //             /* WM_MOUSEACTIVATE */
-//             if ((short)lParam == 1)
+//             if ((int32_t)lParam == 1)
 //             {
 //                 return 2;
 //             }
@@ -1215,7 +1223,7 @@ void setPointerToNull(PermObjectList* param_1) {
 //         {
 //             if (inputEnabled != 0)
 //             {
-//                 handleMouseMoveMessage((short)lParam, (short)((uint32_t)lParam >> 0x10));
+//                 handleMouseMoveMessage((int32_t)lParam, (int32_t)((uint32_t)lParam >> 0x10));
 //                 return 0;
 //             }
 //         }
@@ -1296,7 +1304,7 @@ HBITMAP loadBitmapResource(uint32_t resourceId) {
 	SDL_Surface *tmp, *bitmap;
     // return LoadBitmapA(skiFreeHInstance, MAKEINTRESOURCE(resourceId));
 
-    sprintf(filename, "resources/ski32_%d.bmp", resourceId);
+    sprintf(filename, "resources/ski32_%ld.bmp", resourceId);
     // SDL_Surface* bitmap = IMG_Load(filename);
 
     embedded_resource_t* res = get_embedded_resource_by_name(filename);
@@ -1369,7 +1377,7 @@ void removeFlag8ActorsFromList() {
     }
 }
 
-BOOL changeScratchBitmapSize(short newWidth, short newHeight) {
+BOOL changeScratchBitmapSize(int32_t newWidth, int32_t newHeight) {
     // HGDIOBJ ho;
     // HBITMAP h;
 
@@ -1445,14 +1453,14 @@ Actor* setActorFrameNo(Actor* actor, uint32_t ActorframeNo) {
     return actor;
 }
 
-BOOL isSlowTile(short spriteIdx) {
+BOOL isSlowTile(int32_t spriteIdx) {
     if ((spriteIdx != 27) && (spriteIdx != 82)) {
         return FALSE;
     }
     return TRUE;
 }
 
-Actor* actorSetSpriteIdx(Actor* actor, uint16_t spriteIdx) {
+Actor* actorSetSpriteIdx(Actor* actor, uint32_t spriteIdx) {
     ski_assert(actor, 979);
     if (spriteIdx != actor->spriteIdx2) {
         totalAreaOfActorSprites = totalAreaOfActorSprites - actor->spritePtr->totalPixels;
@@ -1487,8 +1495,8 @@ Actor* duplicateAndLinkActor(Actor* actor) {
 }
 
 Actor* updateActorWithOffscreenStartingPosition(Actor* actor, int borderType) {
-    short y;
-    short x;
+    int32_t y;
+    int32_t x;
 
     if (actor) {
         getRandomOffscreenStartingPosition(borderType, &x, &y);
@@ -1499,7 +1507,7 @@ Actor* updateActorWithOffscreenStartingPosition(Actor* actor, int borderType) {
 }
 
 // TODO this function isn't byte perfect with the original
-Actor* updateActorPositionMaybe(Actor* actor, short newX, short newY, short inAir) {
+Actor* updateActorPositionMaybe(Actor* actor, int32_t newX, int32_t newY, int32_t inAir) {
     BOOL hasMoved;
     BOOL bVar3;
     BOOL bVar4;
@@ -1538,9 +1546,9 @@ Actor* updateActorPositionMaybe(Actor* actor, short newX, short newY, short inAi
 }
 
 // TODO not byte accurate
-void updateActorRectsAfterPlayerMove(short newPlayerX, short newPlayerY) {
-    short dx = newPlayerX - playerX;
-    short dy = newPlayerY - playerY;
+void updateActorRectsAfterPlayerMove(int32_t newPlayerX, int32_t newPlayerY) {
+    int32_t dx = newPlayerX - playerX;
+    int32_t dy = newPlayerY - playerY;
     Actor* actor = actorListPtr;
 
     for (; actor != NULL; actor = actor->next) {
@@ -1560,21 +1568,21 @@ void updateActorRectsAfterPlayerMove(short newPlayerX, short newPlayerY) {
     playerY = newPlayerY;
 }
 
-void getRandomOffscreenStartingPosition(int borderType, short* xPos, short* yPos) {
-    short sVar1;
+void getRandomOffscreenStartingPosition(int borderType, int32_t* xPos, int32_t* yPos) {
+    int32_t sVar1;
 
-    *xPos = (short)playerX - (short)skierScreenXOffset;
-    *yPos = playerY - (short)skierScreenYOffset;
+    *xPos = (int32_t)playerX - (int32_t)skierScreenXOffset;
+    *yPos = playerY - (int32_t)skierScreenYOffset;
     switch (borderType) {
     case BORDER_LEFT:
     case BORDER_RIGHT:
         if (borderType == BORDER_LEFT) {
-            sVar1 = (short)windowClientRect.left + -0x3c;
+            sVar1 = (int32_t)windowClientRect.left + -0x3c;
         } else {
-            sVar1 = (short)windowClientRect.right + 0x3c;
+            sVar1 = (int32_t)windowClientRect.right + 0x3c;
         }
         *xPos = *xPos + sVar1;
-        *yPos = *yPos + (short)windowClientRect.top + ski_random(windowHeight);
+        *yPos = *yPos + (int32_t)windowClientRect.top + ski_random(windowHeight);
         return;
     case BORDER_TOP:
     case BORDER_BOTTOM:
@@ -1583,21 +1591,21 @@ void getRandomOffscreenStartingPosition(int borderType, short* xPos, short* yPos
         assertFailed(sourceFilename, 1454);
         return;
     }
-    *xPos = *xPos + ski_random(windowWidth) + (short)windowClientRect.left;
+    *xPos = *xPos + ski_random(windowWidth) + (int32_t)windowClientRect.left;
     if (borderType == BORDER_TOP) {
-        *yPos = *yPos + (short)windowClientRect.top + -0x3c;
+        *yPos = *yPos + (int32_t)windowClientRect.top + -0x3c;
         return;
     }
-    *yPos = *yPos + (short)windowClientRect.bottom + 0x3c;
+    *yPos = *yPos + (int32_t)windowClientRect.bottom + 0x3c;
     return;
 }
 
 Actor* addRandomActor(int borderType) {
-    uint16_t spriteIdx;
+    uint32_t spriteIdx;
     int actorType;
     Actor* actor = NULL;
-    short y;
-    short x;
+    int32_t y;
+    int32_t x;
 
     getRandomOffscreenStartingPosition(borderType, &x, &y);
     if ((((x < -576) || (-320 < x)) || (y < 640)) || (8640 < y)) {
@@ -1631,7 +1639,7 @@ Actor* addRandomActor(int borderType) {
 }
 
 int randomActorType1(void) {
-    uint16_t uVar1;
+    uint32_t uVar1;
 
     if (totalAreaOfActorSprites > windowWithMarginTotalArea / 32) {
         return 0x12;
@@ -1672,7 +1680,7 @@ int randomActorType3() {
 }
 
 int randomActorType2() {
-    uint16_t uVar1;
+    uint32_t uVar1;
 
     if (totalAreaOfActorSprites > windowWithMarginTotalArea / 32) {
         return 0x12;
@@ -1719,14 +1727,14 @@ Actor* updateActor(Actor* actor) {
 
 // TODO not 100% byte accurate. missing assert and some other logic differences
 Actor* updatePlayerActor(Actor* actor) {
-    short sVar1;
-    short uVar5;
+    int32_t sVar1;
+    int32_t uVar5;
     Actor* pAVar2;
     Sound* sound;
     int points;
     uint32_t ActorframeNo;
-    short xPos;
-    short yPos;
+    int32_t xPos;
+    int32_t yPos;
 
     xPos = actor->xPosMaybe;
     yPos = actor->yPosMaybe;
@@ -1745,7 +1753,7 @@ Actor* updatePlayerActor(Actor* actor) {
         if (sVar1 < 0) {
             uVar5 = -1;
         } else {
-            uVar5 = (short)(sVar1 > 0);
+            uVar5 = (int32_t)(sVar1 > 0);
         }
         actor->HorizontalVelMaybe = sVar1 - uVar5;
         sVar1 = actor->verticalVelocityMaybe;
@@ -1824,11 +1832,11 @@ switchD_00402b0b_caseD_b:
 }
 
 // TODO this isn't byte compatible.
-void updateSsGameMode(Actor* actor, short xPos, short yPos) {
+void updateSsGameMode(Actor* actor, int32_t xPos, int32_t yPos) {
     int iVar1;
-    uint16_t spriteIdx;
-    short x;
-    short y;
+    uint32_t spriteIdx;
+    int32_t x;
+    int32_t y;
 
     if (actor == playerActor) {
         x = actor->xPosMaybe;
@@ -1852,7 +1860,7 @@ void updateSsGameMode(Actor* actor, short xPos, short yPos) {
             if (y > currentSlalomFlag->maybeY) {
                 spriteIdx = 0x19;
                 iVar1 = FUN_00402e30((int)x, (int)xPos, (int)y, (int)yPos, (int)currentSlalomFlag->maybeY);
-                if (((currentSlalomFlag->spriteIdx == 0x17) && ((short)iVar1 > currentSlalomFlag->maybeX)) || ((currentSlalomFlag->spriteIdx == 0x18 && ((short)iVar1 < currentSlalomFlag->maybeX)))) {
+                if (((currentSlalomFlag->spriteIdx == 0x17) && ((int32_t)iVar1 > currentSlalomFlag->maybeX)) || ((currentSlalomFlag->spriteIdx == 0x18 && ((int32_t)iVar1 < currentSlalomFlag->maybeX)))) {
                     spriteIdx = 0x1a;
                     timedGameRelated = timedGameRelated - 5000;
                 }
@@ -1863,7 +1871,7 @@ void updateSsGameMode(Actor* actor, short xPos, short yPos) {
         } else {
             if ((yPos <= 0x280) && (y > 0x280)) {
                 iVar1 = FUN_00402e30((int)x, (int)xPos, (int)y, (int)yPos, 0x280);
-                if (((short)iVar1 >= -576) && ((short)iVar1 <= -320)) {
+                if (((int32_t)iVar1 >= -576) && ((int32_t)iVar1 <= -320)) {
                     isSsGameMode = 1;
                     timedGameRelated = FUN_00402e30(currentTickCount, prevTickCount, (int)y, (int)yPos, 0x280);
                     elapsedTime = timedGameRelated - currentTickCount;
@@ -1898,11 +1906,11 @@ void updateEntPackIniKeyValue(LPCSTR configKey, int value, int isTime) {
     // int *valuePtr;
     // uint32_t uVar2;
     // int iVar3;
-    // uint16_t uVar4 = 0;
-    // uint16_t yourscoreIdx;
+    // uint32_t uVar4 = 0;
+    // uint32_t yourscoreIdx;
     // char *pcVar5;
     // LPSTR outputString;
-    // uint16_t uVar6;
+    // uint32_t uVar6;
     // char *bufPtr;
     // int hiScoreTbl[10];
     // char lineBuf[256];
@@ -2069,7 +2077,7 @@ void updateEntPackIniKeyValue(LPCSTR configKey, int value, int isTime) {
 }
 
 // TODO not byte compatible. jmp actorSetSpriteIdx rather than call.
-void permObjectSetSpriteIdx(PermObject* permObject, uint16_t spriteIdx) {
+void permObjectSetSpriteIdx(PermObject* permObject, uint32_t spriteIdx) {
     ski_assert(permObject, 1773);
 
     permObject->spriteIdx = spriteIdx;
@@ -2080,10 +2088,10 @@ void permObjectSetSpriteIdx(PermObject* permObject, uint16_t spriteIdx) {
 }
 
 // TODO not byte compatible. Another jmp instead of call.
-void updateFsGameMode(Actor* actor, short xPos, short yPos) {
+void updateFsGameMode(Actor* actor, int32_t xPos, int32_t yPos) {
     int iVar1;
-    short x;
-    short y;
+    int32_t x;
+    int32_t y;
 
     if (actor == playerActor) {
         x = actor->xPosMaybe;
@@ -2105,7 +2113,7 @@ void updateFsGameMode(Actor* actor, short xPos, short yPos) {
         } else {
             if ((yPos <= 0x280) && (0x280 < y)) {
                 iVar1 = FUN_00402e30((int)x, (int)xPos, (int)y, (int)yPos, 0x280);
-                if (((short)iVar1 >= -160) && ((short)iVar1 <= 160)) {
+                if (((int32_t)iVar1 >= -160) && ((int32_t)iVar1 <= 160)) {
                     isFsGameMode = 1;
                 }
             }
@@ -2114,11 +2122,11 @@ void updateFsGameMode(Actor* actor, short xPos, short yPos) {
 }
 
 // TODO not byte compatible. Another jmp instead of call.
-void updateGsGameMode(Actor* actor, short xPos, short yPos) {
+void updateGsGameMode(Actor* actor, int32_t xPos, int32_t yPos) {
     int iVar1;
-    uint16_t spriteIdx;
-    short x;
-    short y;
+    uint32_t spriteIdx;
+    int32_t x;
+    int32_t y;
 
     if (actor == playerActor) {
         x = actor->xPosMaybe;
@@ -2143,7 +2151,7 @@ void updateGsGameMode(Actor* actor, short xPos, short yPos) {
             if (y > currentSlalomFlag->maybeY) {
                 spriteIdx = 0x19;
                 iVar1 = FUN_00402e30((int)x, (int)xPos, (int)y, (int)yPos, (int)currentSlalomFlag->maybeY);
-                if (((currentSlalomFlag->spriteIdx == 0x17) && ((short)iVar1 > currentSlalomFlag->maybeX)) || ((currentSlalomFlag->spriteIdx == 0x18 && ((short)iVar1 < currentSlalomFlag->maybeX)))) {
+                if (((currentSlalomFlag->spriteIdx == 0x17) && ((int32_t)iVar1 > currentSlalomFlag->maybeX)) || ((currentSlalomFlag->spriteIdx == 0x18 && ((int32_t)iVar1 < currentSlalomFlag->maybeX)))) {
                     spriteIdx = 0x1a;
                     timedGameRelated = timedGameRelated - 5000;
                 }
@@ -2154,7 +2162,7 @@ void updateGsGameMode(Actor* actor, short xPos, short yPos) {
         } else {
             if ((yPos <= 0x280) && (0x280 < y)) {
                 iVar1 = FUN_00402e30((int)x, (int)xPos, (int)y, (int)yPos, 0x280);
-                if (((short)iVar1 >= 320) && ((short)iVar1 <= 0x200)) {
+                if (((int32_t)iVar1 >= 320) && ((int32_t)iVar1 <= 0x200)) {
                     isGsGameMode = 1;
                     timedGameRelated = FUN_00402e30(currentTickCount, prevTickCount, (int)y, (int)yPos, 0x280);
                     elapsedTime = timedGameRelated - currentTickCount;
@@ -2167,11 +2175,11 @@ void updateGsGameMode(Actor* actor, short xPos, short yPos) {
 
 // TODO not byte accurate.
 Actor* updateActorVelMaybe(Actor* actor, const ActorVelStruct* param_2) {
-    short xRelated;
-    short sVar1;
+    int32_t xRelated;
+    int32_t sVar1;
     int iVar2;
-    short existingHorizontalVel;
-    short existingVerticalVel;
+    int32_t existingHorizontalVel;
+    int32_t existingVerticalVel;
 
     existingHorizontalVel = actor->HorizontalVelMaybe;
     existingVerticalVel = actor->verticalVelocityMaybe;
@@ -2188,7 +2196,7 @@ Actor* updateActorVelMaybe(Actor* actor, const ActorVelStruct* param_2) {
         if (existingHorizontalVel < 0) {
             xRelated = -1;
         } else {
-            xRelated = (short)(0 < existingHorizontalVel);
+            xRelated = (int32_t)(0 < existingHorizontalVel);
         }
     }
     existingHorizontalVel = xRelated * existingHorizontalVel;
@@ -2197,32 +2205,32 @@ Actor* updateActorVelMaybe(Actor* actor, const ActorVelStruct* param_2) {
     } else {
         iVar2 = 0;
     }
-    sVar1 = (short)((param_2->unk_6 * iVar2) / 2);
+    sVar1 = (int32_t)((param_2->unk_6 * iVar2) / 2);
     if (existingHorizontalVel > sVar1) {
         iVar2 = existingHorizontalVel - 2;
         if ((int)sVar1 <= iVar2) {
             //            LAB_004034f1:
-            sVar1 = (short)iVar2;
+            sVar1 = (int32_t)iVar2;
         }
     } else {
         iVar2 = (int)existingHorizontalVel + (int)param_2->unk_4;
         if (iVar2 <= sVar1) { // goto LAB_004034f1;
-            sVar1 = (short)iVar2;
+            sVar1 = (int32_t)iVar2;
         }
     }
     existingHorizontalVel = param_2->unk_2;
     if (existingHorizontalVel < existingVerticalVel) {
         iVar2 = existingVerticalVel + -2;
         if (existingHorizontalVel <= iVar2) { // goto LAB_0040351c;
-            existingHorizontalVel = (short)iVar2;
+            existingHorizontalVel = (int32_t)iVar2;
         }
     } else {
         iVar2 = (int)param_2->unk_0 + (int)existingVerticalVel;
         if (iVar2 <= existingHorizontalVel) { // goto LAB_0040351c;
-            existingHorizontalVel = (short)iVar2;
+            existingHorizontalVel = (int32_t)iVar2;
         }
     }
-    //    existingHorizontalVel = (short)iVar2;
+    //    existingHorizontalVel = (int32_t)iVar2;
     //    LAB_0040351c:
     actor->verticalVelocityMaybe = existingHorizontalVel;
     actor->HorizontalVelMaybe = xRelated * sVar1;
@@ -2231,7 +2239,7 @@ Actor* updateActorVelMaybe(Actor* actor, const ActorVelStruct* param_2) {
 
 // TODO not byte accurate
 Actor* updateActorTypeA_walkingTree(Actor* actor) {
-    uint16_t uVar2;
+    uint32_t uVar2;
     Actor* pAVar3;
     int ActorframeNo;
 
@@ -2319,18 +2327,18 @@ Actor* updateActorType3_snowboarder(Actor* actor) {
 
 // TODO not byte accurate
 Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
-    short sVar1;
-    short sVar2;
-    short sVar3;
+    int32_t sVar1;
+    int32_t sVar2;
+    int32_t sVar3;
     int iVar4;
     BOOL bVar5;
     Actor* pAVar6;
     Sound* sound;
-    short sVar9;
-    short actor1y;
-    short actor2y;
+    int32_t sVar9;
+    int32_t actor1y;
+    int32_t actor2y;
     uint32_t local_c;
-    short maxSpriteWidth;
+    int32_t maxSpriteWidth;
 
     ski_assert(actor1, 2350);
     ski_assert(actor2, 2351);
@@ -2458,7 +2466,7 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
         case 9:
         case 10:
         case ACTOR_TYPE_13_TREE:
-            if ((sVar9 < sVar1) || ((short)(actor1->spritePtr->height + sVar1) < actor2->isInAir)) {
+            if ((sVar9 < sVar1) || ((int32_t)(actor1->spritePtr->height + sVar1) < actor2->isInAir)) {
                 if (iVar4 == 9) {
                     addStylePoints(1000);
                     actor2->typeMaybe = ACTOR_TYPE_13_TREE;
@@ -2567,9 +2575,9 @@ Actor* handleActorCollision(Actor* actor1, Actor* actor2) {
 }
 
 void updateAllPermObjectsInList(PermObjectList* param_1) {
-    short top = (short)((windowClientRectWith120Margin.top - skierScreenYOffset) - 0x3c);
-    short bottom = (short)((windowClientRectWith120Margin.bottom - skierScreenYOffset) + 0x3c);
-    short sVar4;
+    int32_t top = (int32_t)((windowClientRectWith120Margin.top - skierScreenYOffset) - 0x3c);
+    int32_t bottom = (int32_t)((windowClientRectWith120Margin.bottom - skierScreenYOffset) + 0x3c);
+    int32_t sVar4;
     PermObject* permObject;
 
     permObject = param_1->startingObject;
@@ -2589,9 +2597,9 @@ void updateAllPermObjectsInList(PermObjectList* param_1) {
 }
 
 Actor* addActorForPermObject(PermObject* permObject) {
-    uint16_t newX;
-    uint16_t newY;
-    short inAir;
+    uint32_t newX;
+    uint32_t newY;
+    int32_t inAir;
     Actor* actor;
     RECT spriteRect;
 
@@ -2678,14 +2686,14 @@ void updatePermObjectActorType4(PermObject* permObject) {
 
 // TODO not byte accurate
 void updateYeti(PermObject* permObject) {
-    short permObjX;
-    short permObjY;
+    int32_t permObjX;
+    int32_t permObjY;
     int iVar6;
-    short sVar9;
+    int32_t sVar9;
     int actorFrameNo;
-    short local_c;
-    short pX;
-    short pY;
+    int32_t local_c;
+    int32_t pX;
+    int32_t pY;
     int tickRelated;
     int dX;
     int dY;
@@ -2767,7 +2775,7 @@ void updateYeti(PermObject* permObject) {
                 if ((iVar6 == ACTOR_TYPE_5_YETI_TOP && pY < -2000) || (iVar6 == ACTOR_TYPE_6_YETI_BOTTOM && pY > 32000) || (iVar6 == ACTOR_TYPE_7_YETI_LEFT && pX < -16000) || (iVar6 == ACTOR_TYPE_8_YETI_RIGHT && pX > 16000)) {
                     dX = (int)pX - (int)permObjX;
                     dY = (int)pY - (int)permObjY;
-                    //                    sVar9 = (short) windowWidth;
+                    //                    sVar9 = (int32_t) windowWidth;
                     //                        iVar10 = (int) sVar9;
                     if (dX > windowWidth) {
                         //                        sVar9 = -sVar9;
@@ -2794,7 +2802,7 @@ void updateYeti(PermObject* permObject) {
                             dX = -0x10;
                         }
                     }
-                    local_c = (short)dX;
+                    local_c = (int32_t)dX;
                     if (dY >= 0x1a) {
                         dY = 0x1a;
                     } else {
@@ -2802,7 +2810,7 @@ void updateYeti(PermObject* permObject) {
                             dY = -10;
                         }
                     }
-                    sVar9 = (short)dY;
+                    sVar9 = (int32_t)dY;
                     //playSound(&sound_9);
                      playSound(9);
                 }
@@ -2812,11 +2820,11 @@ void updateYeti(PermObject* permObject) {
         //    uVar8 = (uint32_t)sVar9;
 
         if (abs(local_c) > abs(sVar9)) {
-            permObject->yVelocity = (short)((int)((int)permObject->xVelocity * sVar9) / (int)local_c);
+            permObject->yVelocity = (int32_t)((int)((int)permObject->xVelocity * sVar9) / (int)local_c);
             //        LAB_00404617:
             permObject->unk_0x1e = 1;
         } else if (sVar9 != 0) {
-            permObject->xVelocity = (short)((int)((int)permObject->yVelocity * local_c) / (int)sVar9);
+            permObject->xVelocity = (int32_t)((int)((int)permObject->yVelocity * local_c) / (int)sVar9);
             //        goto LAB_00404617;
             permObject->unk_0x1e = 1;
         }
@@ -2847,13 +2855,13 @@ void updateYeti(PermObject* permObject) {
 }
 
 void FUN_004046e0(PermObjectList* permObjList) {
-    short top;
-    short bottom;
+    int32_t top;
+    int32_t bottom;
     PermObject* permObject;
     PermObject* pPVar4;
 
-    top = ((short)windowClientRectWith120Margin.top - skierScreenYOffset) + -0x3c;
-    bottom = ((short)windowClientRectWith120Margin.bottom - skierScreenYOffset) + 0x3c;
+    top = ((int32_t)windowClientRectWith120Margin.top - skierScreenYOffset) + -0x3c;
+    bottom = ((int32_t)windowClientRectWith120Margin.bottom - skierScreenYOffset) + 0x3c;
     permObject = permObjList->currentObj;
     ski_assert(permObjList, 2849);
     ski_assert(permObject >= permObjList->startingObject, 2850);
@@ -2950,8 +2958,8 @@ void deleteWindowObjects(void) {
     // }
 }
 
-int getSkierGroundSpriteFromMousePosition(short param_1, short param_2) {
-    short uVar1;
+int getSkierGroundSpriteFromMousePosition(int32_t param_1, int32_t param_2) {
+    int32_t uVar1;
 
     if (param_2 > 0) {
         if (param_1 == 0) {
@@ -2986,7 +2994,7 @@ int getSkierGroundSpriteFromMousePosition(short param_1, short param_2) {
     return param_1 < 0 ? 3 : 6;
 }
 
-int getSkierInAirSpriteFromMousePosition(short param_1, short param_2) {
+int getSkierInAirSpriteFromMousePosition(int32_t param_1, int32_t param_2) {
     if (param_1 < 0) {
         if (param_2 < 0) {
             return (param_2 < param_1) ? 16 : 14;
@@ -3037,14 +3045,14 @@ void handleMouseClick() {
     }
 }
 
-void handleMouseMoveMessage(short xPos, short yPos) {
+void handleMouseMoveMessage(int32_t xPos, int32_t yPos) {
     int ActorframeNo;
-    short mouseSkierXDelta;
-    short mouseSkierYDelta;
+    int32_t mouseSkierXDelta;
+    int32_t mouseSkierYDelta;
 
     if (((DAT_0040c760 != 0) && (((xPos != prevMouseX || (yPos != prevMouseY)) && (playerActor != NULL)))) && ((playerActor->frameNo != 0xb && (playerActor->frameNo != 0x11)))) {
-        mouseSkierXDelta = xPos - (short)skierScreenXOffset;
-        mouseSkierYDelta = yPos - (short)skierScreenYOffset;
+        mouseSkierXDelta = xPos - (int32_t)skierScreenXOffset;
+        mouseSkierYDelta = yPos - (int32_t)skierScreenYOffset;
         if (playerActor->isInAir == 0) {
             ActorframeNo = getSkierGroundSpriteFromMousePosition(mouseSkierXDelta, mouseSkierYDelta);
         } else {
@@ -3075,13 +3083,13 @@ void updateWindowSize(HWND hWnd) {
     windowClientRectWith120Margin.right = windowClientRect.right + 120;
     windowClientRectWith120Margin.bottom = windowClientRect.bottom + 120;
     windowClientRectWith120Margin.top = windowClientRect.top - 120;
-    windowWidth = (short)(windowClientRect.right - windowClientRect.left);
-    windowHeight = (short)(windowClientRect.bottom - windowClientRect.top);
+    windowWidth = (int32_t)(windowClientRect.right - windowClientRect.left);
+    windowHeight = (int32_t)(windowClientRect.bottom - windowClientRect.top);
     windowWithMarginTotalArea = (windowClientRectWith120Margin.bottom - windowClientRectWith120Margin.top) * (windowClientRectWith120Margin.bottom - windowClientRectWith120Margin.left);
 }
 
 // TODO not byte accurate
-void updateActorsAfterWindowResize(short centreX, short centreY) {
+void updateActorsAfterWindowResize(int32_t centreX, int32_t centreY) {
     Actor* actor;
 
     for (actor = actorListPtr; actor != NULL; actor = actor->next) {
@@ -3098,26 +3106,26 @@ void updateActorsAfterWindowResize(short centreX, short centreY) {
 }
 
 // TODO not byte accurate
-void updateRectForSpriteAtLocation(RECT* rect, Sprite* sprite, short newX, short newY, short param_5) {
-    short spriteHeight;
-    short spriteWidth;
+void updateRectForSpriteAtLocation(RECT* rect, Sprite* sprite, int32_t newX, int32_t newY, int32_t param_5) {
+    int32_t spriteHeight;
+    int32_t spriteWidth;
 
     spriteWidth = sprite->width;
     spriteHeight = sprite->height;
     ski_assert(rect, 907);
     ski_assert(sprite, 908);
 
-    rect->top = ((short)(newY + (short)((short)(skierScreenYOffset - playerY) - param_5)) - spriteHeight);
-    rect->left = (newX + (short)((skierScreenXOffset - spriteWidth / 2) - playerX));
+    rect->top = ((int32_t)(newY + (int32_t)((int32_t)(skierScreenYOffset - playerY) - param_5)) - spriteHeight);
+    rect->left = (newX + (int32_t)((skierScreenXOffset - spriteWidth / 2) - playerX));
     rect->bottom = spriteHeight + rect->top;
     rect->right = spriteWidth + rect->left;
 }
 
 void formatAndPrintStatusStrings(HDC windowDC) {
-    short sVar1;
-    short speed;
-    short x = statusWindowLabelWidth + 2;
-    short y = 2;
+    int32_t sVar1;
+    int32_t speed;
+    int32_t x = statusWindowLabelWidth + 2;
+    int32_t y = 2;
     char strBuf[20];
     int len;
 
@@ -3126,7 +3134,7 @@ void formatAndPrintStatusStrings(HDC windowDC) {
 
     if (playerActor != NULL) {
         if (timerFrameDurationInMillis != 0) {
-            speed = (short)((int)(playerActor->verticalVelocityMaybe * 1000) / (int)(timerFrameDurationInMillis * 16));
+            speed = (int32_t)((int)(playerActor->verticalVelocityMaybe * 1000) / (int)(timerFrameDurationInMillis * 16));
         } else {
             speed = 0;
         }
@@ -3154,7 +3162,7 @@ void formatAndPrintStatusStrings(HDC windowDC) {
 
     len = formatElapsedTime(elapsedTime, strBuf);
     drawText(windowDC, strBuf, x, &y, len);
-    sprintf(strBuf, getCachedString(IDS_DIST_FORMAT), (short)(sVar1 / 16));
+    sprintf(strBuf, getCachedString(IDS_DIST_FORMAT), (int32_t)(sVar1 / 16));
     len = strlen(strBuf);
     drawText(windowDC, strBuf, x, &y, len);
 
@@ -3186,16 +3194,16 @@ PermObject* addPermObject(PermObjectList* objList, PermObject* permObject) {
     objList->nextObject = objList->nextObject + 1;
     memcpy(pPVar1, permObject, sizeof(PermObject));
     pPVar1->actor = NULL;
-    pPVar1->spritePtr = &sprites[(uint16_t)pPVar1->spriteIdx];
+    pPVar1->spritePtr = &sprites[(uint32_t)pPVar1->spriteIdx];
 
     return pPVar1;
 }
 
 void setupPermObjects() {
     BOOL bVar1;
-    uint16_t uVar2;
+    uint32_t uVar2;
     PermObject* pPVar3;
-    short sVar4;
+    int32_t sVar4;
     PermObject permObject;
 
     permObject.unk_0x1e = 0;
@@ -3206,12 +3214,12 @@ void setupPermObjects() {
     permObject.actorTypeMaybe = ACTOR_TYPE_17_SIGN;
 
     // Slalom sign
-    permObject.maybeX = ((short)playerX - skierScreenXOffset) + windowClientRect.left + 60;
+    permObject.maybeX = ((int32_t)playerX - skierScreenXOffset) + windowClientRect.left + 60;
     permObject.spriteIdx = 0x3d;
     if (permObject.maybeX < -320) {
         permObject.maybeX = -320;
     }
-    permObject.maybeY = ((short)playerY - skierScreenYOffset) + windowClientRect.bottom - 60;
+    permObject.maybeY = ((int32_t)playerY - skierScreenYOffset) + windowClientRect.bottom - 60;
     if (640 < permObject.maybeY) {
         permObject.maybeY = 520;
     }
@@ -3233,8 +3241,8 @@ void setupPermObjects() {
     /* slalom flags */
     sVar4 = 960;
     do {
-        permObject.spriteIdx = bVar1 ? 0x17 : 0x18; // 0x18 - (uint16_t)bVar1;
-        permObject.maybeX = bVar1 ? -496 : -400;    //(-(uint16_t)bVar1 & 0xffa0) + -400;
+        permObject.spriteIdx = bVar1 ? 0x17 : 0x18; // 0x18 - (uint32_t)bVar1;
+        permObject.maybeX = bVar1 ? -496 : -400;    //(-(uint32_t)bVar1 & 0xffa0) + -400;
         bVar1 = !bVar1;
         permObject.maybeY = sVar4;
         pPVar3 = addPermObject(&PermObjectList_0040c630, &permObject);
@@ -3254,11 +3262,11 @@ void setupPermObjects() {
     setPointerToNull(&PermObjectList_0040c5e0);
     permObject.actorTypeMaybe = ACTOR_TYPE_17_SIGN;
     permObject.spriteIdx = 0x3e;
-    permObject.maybeX = ((short)windowClientRect.right - skierScreenXOffset) + -0x3c + (short)playerX;
+    permObject.maybeX = ((int32_t)windowClientRect.right - skierScreenXOffset) + -0x3c + (int32_t)playerX;
     if (permObject.maybeX > 320) {
         permObject.maybeX = 320;
     }
-    permObject.maybeY = ((short)windowClientRect.bottom - skierScreenYOffset) + playerY + -0x3c;
+    permObject.maybeY = ((int32_t)windowClientRect.bottom - skierScreenYOffset) + playerY + -0x3c;
     if (0x280 < permObject.maybeY) {
         permObject.maybeY = 520;
     }
@@ -3397,7 +3405,7 @@ void handleKeydownMessage() {
 #else
 void handleKeydownMessage(SDL_Event* e) {
 #endif
-    short sVar1;
+    int32_t sVar1;
     uint32_t actorframeNo;
 
     #if 0
@@ -3532,7 +3540,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 //                    if (iVar2 <= -8) {
                 //                        iVar2 = -8;
                 //                    }
-                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
                 playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
             }
 		}
@@ -3547,7 +3555,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 //                    if (iVar2 >= 8) {
                 //                        iVar2 = 8;
                 //                    }
-                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
 
                 playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
             }
@@ -3580,7 +3588,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 //                    if (iVar2 <= -8) {
                 //                        iVar2 = -8;
                 //                    }
-                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
                 playerActor->HorizontalVelMaybe = max_(playerActor->HorizontalVelMaybe - 8, -8);
             }
         break;
@@ -3594,7 +3602,7 @@ void handleKeydownMessage(SDL_Event* e) {
                 //                    if (iVar2 >= 8) {
                 //                        iVar2 = 8;
                 //                    }
-                //                    playerActor->HorizontalVelMaybe = (short) iVar2;
+                //                    playerActor->HorizontalVelMaybe = (int32_t) iVar2;
 
                 playerActor->HorizontalVelMaybe = min_(playerActor->HorizontalVelMaybe + 8, 8);
             }
@@ -3729,7 +3737,7 @@ void updateGameState() {
     RECT* rect2;
     Actor* pAVar7;
 
-    DAT_0040c714 = DAT_0040c714 - (short)playerX;
+    DAT_0040c714 = DAT_0040c714 - (int32_t)playerX;
     DAT_0040c5d8 = DAT_0040c5d8 - playerY;
 
     for (pAVar7 = actorListPtr; pAVar7 != NULL; pAVar7 = pAVar7->next) {
@@ -3786,7 +3794,7 @@ void updateGameState() {
             }
         }
     }
-    DAT_0040c714 = DAT_0040c714 + (short)playerX;
+    DAT_0040c714 = DAT_0040c714 + (int32_t)playerX;
     for (DAT_0040c5d8 = DAT_0040c5d8 + playerY; 0x3c < DAT_0040c5d8;
          DAT_0040c5d8 = DAT_0040c5d8 + -0x3c) {
         addRandomActor(BORDER_BOTTOM);
@@ -3815,13 +3823,13 @@ BOOL createBitmapSheets(HDC param_1) {
     HBITMAP bitmap;
     int resourceId;
     Sprite* sprite;
-    short maxWidth;
+    int32_t maxWidth;
     int smallBitmapSheetHeight;
     int largeBitmapSheetHeight;
     int largeSpriteYOffset;
     int smallSpriteYOffset;
     int sheetYOffset;
-    short maxHeight;
+    int32_t maxHeight;
     int spriteWidth;
     int spriteHeigth;
 
@@ -3864,7 +3872,7 @@ BOOL createBitmapSheets(HDC param_1) {
     // {
     //     return FALSE;
     // }
-    // pHVar1 = CreateCompatibleBitmap(param_1, 32, (int)(short)smallBitmapSheetHeight);
+    // pHVar1 = CreateCompatibleBitmap(param_1, 32, (int)(int32_t)smallBitmapSheetHeight);
     // if (pHVar1 == (HBITMAP)0x0)
     // {
     //     return FALSE;
@@ -3882,7 +3890,7 @@ BOOL createBitmapSheets(HDC param_1) {
     // {
     //     return FALSE;
     // }
-    // pHVar1 = CreateBitmap(32, (int)(short)smallBitmapSheetHeight, 1, 1, (void *)0x0);
+    // pHVar1 = CreateBitmap(32, (int)(int32_t)smallBitmapSheetHeight, 1, 1, (void *)0x0);
     // if (pHVar1 == (HBITMAP)0x0)
     // {
     //     return FALSE;
@@ -3898,7 +3906,7 @@ BOOL createBitmapSheets(HDC param_1) {
     // {
     //     return FALSE;
     // }
-    // pHVar1 = CreateCompatibleBitmap(param_1, (int)(short)(uint16_t)maxWidth, (int)(short)largeBitmapSheetHeight);
+    // pHVar1 = CreateCompatibleBitmap(param_1, (int)(int32_t)(uint32_t)maxWidth, (int)(int32_t)largeBitmapSheetHeight);
     // if (pHVar1 == (HBITMAP)0x0)
     // {
     //     return FALSE;
@@ -3915,7 +3923,7 @@ BOOL createBitmapSheets(HDC param_1) {
     // {
     //     return FALSE;
     // }
-    // pHVar1 = CreateBitmap((int)(short)(uint16_t)maxWidth, (int)(short)largeBitmapSheetHeight, 1, 1,
+    // pHVar1 = CreateBitmap((int)(int32_t)(uint32_t)maxWidth, (int)(int32_t)largeBitmapSheetHeight, 1, 1,
     //                       (void *)0x0);
     // if (pHVar1 == (HBITMAP)0x0)
     // {
@@ -3981,7 +3989,7 @@ BOOL createBitmapSheets(HDC param_1) {
 	largeTextureAtlas = largeBitmapDC;
 	smallTextureAtlas = smallBitmapDC;
     
-    for (resourceId = 1; (uint16_t)resourceId < 90; resourceId++) {
+    for (resourceId = 1; (uint32_t)resourceId < 90; resourceId++) {
         sprite = &sprites[resourceId & 0xffff];
         if (sprite->width > 32) {
             sprite->sheet = largeTextureAtlas;
@@ -3990,8 +3998,8 @@ BOOL createBitmapSheets(HDC param_1) {
         }
     }
 
-    // scratchBitmapWidth = ((uint16_t)maxWidth & 0xffc0) + 0x40;
-    // scratchBitmapHeight = ((uint16_t)maxHeight & 0xffc0) + 0x40;
+    // scratchBitmapWidth = ((uint32_t)maxWidth & 0xffc0) + 0x40;
+    // scratchBitmapHeight = ((uint32_t)maxHeight & 0xffc0) + 0x40;
 
     // pHVar1 = CreateCompatibleBitmap(param_1, (int)scratchBitmapWidth, (int)scratchBitmapHeight);
     // if (pHVar1 == (HBITMAP)0x0)
@@ -4096,15 +4104,15 @@ void drawWindow(HDC hdc, RECT* windowRect) {
 
 void drawActor(HDC hdc, Actor* actor) {
     Actor** ppAVar1;
-    short y;
+    int32_t y;
     RECT* rect;
-    uint16_t uVar6;
+    uint32_t uVar6;
     Actor* pAVar7;
-    short sVar8;
-    short newWidth;
-    uint16_t newHeight;
+    int32_t sVar8;
+    int32_t newWidth;
+    uint32_t newHeight;
     Actor* actor_00;
-    short sVar10;
+    int32_t sVar10;
     Actor** ppAVar11;
     // DWORD rop;
     Actor* local_24;
@@ -4112,20 +4120,20 @@ void drawActor(HDC hdc, Actor* actor) {
     int local_1c;
     uint32_t local_14;
     uint32_t actorRectLeft;
-    short sheetY;
+    int32_t sheetY;
     int local_c;
     uint32_t local_8;
     Actor** local_4;
     Sprite* sprite;
-    short spriteWidth;
-    short spriteHeight;
+    int32_t spriteWidth;
+    int32_t spriteHeight;
 
-    uVar6 = *(uint16_t*)&(actor->rect).left;
+    uVar6 = *(uint32_t*)&(actor->rect).left;
     actorRectLeft = (actor->rect).left;
 
-    y = *(short*)&(actor->rect).top;
-    newWidth = *(short*)&(actor->rect).right - uVar6;
-    newHeight = *(short*)&(actor->rect).bottom - y;
+    y = *(int32_t*)&(actor->rect).top;
+    newWidth = *(int32_t*)&(actor->rect).right - uVar6;
+    newHeight = *(int32_t*)&(actor->rect).bottom - y;
 
     local_c = 0;
     local_20 = actor;
@@ -4146,7 +4154,7 @@ void drawActor(HDC hdc, Actor* actor) {
     }
     local_1c = 0;
     if (!changeScratchBitmapSize(newWidth, newHeight)) {
-        // PatBlt(hdc, (int)(short)uVar6, (int)y, (int)newWidth, (int)(short)newHeight, 0xff0062);
+        // PatBlt(hdc, (int)(int32_t)uVar6, (int)y, (int)newWidth, (int)(int32_t)newHeight, 0xff0062);
         do {
             if ((actor->flags & FLAG_1) == 0 && (actor->flags & FLAG_2) == 0) {
                 sprite = actor->spritePtr;
@@ -4183,7 +4191,7 @@ void drawActor(HDC hdc, Actor* actor) {
                     sVar8 = actor->spritePtr->height;
                 }
                 uVar6 = actor->yPosMaybe - sVar8;
-                if ((actor_00 == NULL) || ((short)uVar6 < (short)local_8)) {
+                if ((actor_00 == NULL) || ((int32_t)uVar6 < (int32_t)local_8)) {
                     actor_00 = actor;
                     local_24 = actor;
                     local_8 = uVar6; // actor->flags & 0xffff0000 | (uint32_t)uVar6;
@@ -4213,7 +4221,7 @@ void drawActor(HDC hdc, Actor* actor) {
             }
 
             local_14 = rect->left - actorRectLeft;
-            sVar10 = *(short*)&rect->top - y;
+            sVar10 = *(int32_t*)&rect->top - y;
             ski_assert(rect->right - rect->left == spriteWidth, 1203);
             ski_assert(rect->bottom - rect->top == spriteHeight, 1204);
             ski_assert(local_14 >= 0, 1205);
@@ -4224,6 +4232,7 @@ void drawActor(HDC hdc, Actor* actor) {
             // }
 
             ski_assert(sVar10 >= 0, 1206);
+            //printf("newWidth %ld spriteWidth %ld\n", newWidth, spriteWidth);
             ski_assert(newWidth >= spriteWidth, 1207);
 
             // if (sVar10 < 0) {
@@ -4235,19 +4244,19 @@ void drawActor(HDC hdc, Actor* actor) {
             }
             if (local_1c == 0) {
                 local_1c = 1;
-                if ((((0 < (short)local_14) || (0 < sVar10)) || (spriteWidth < newWidth)) || (spriteHeight < newHeight)) {
+                if ((((0 < (int32_t)local_14) || (0 < sVar10)) || (spriteWidth < newWidth)) || (spriteHeight < newHeight)) {
                     // PatBlt(bitmapSourceDC, 0, 0, (int)newWidth, (int)newHeight, 0xff0062);
                 }
                 // rop = 0xcc0020;
             } else {
                 // SRCPAINT
-                // BitBlt(bitmapSourceDC, (int)(short)local_14, (int)sVar10, spriteWidth, spriteHeight, sprite->sheetDC_1bpp, 0, (int)sheetY,
+                // BitBlt(bitmapSourceDC, (int)(int32_t)local_14, (int)sVar10, spriteWidth, spriteHeight, sprite->sheetDC_1bpp, 0, (int)sheetY,
                 //        0xee0086);
                 // SRCAND
                 // rop = 0x8800c6;
             }
 
-            // BitBlt(bitmapSourceDC, (int)(short)local_14, (int)sVar10, spriteWidth, spriteHeight, sprite->sheetDC, 0, (int)sheetY, rop);
+            // BitBlt(bitmapSourceDC, (int)(int32_t)local_14, (int)sVar10, spriteWidth, spriteHeight, sprite->sheetDC, 0, (int)sheetY, rop);
 
             SDL_Rect srcrect;
             srcrect.x = 0;
@@ -4271,11 +4280,11 @@ void drawActor(HDC hdc, Actor* actor) {
     } while (actor != NULL);
     if (local_1c != 0) {
         // SRCCOPY
-        // BitBlt(hdc, (int)(short)actorRectLeft, (int)y, (int)newWidth, (int)(short)newHeight, bitmapSourceDC, 0, 0, 0xcc0020);
+        // BitBlt(hdc, (int)(int32_t)actorRectLeft, (int)y, (int)newWidth, (int)(int32_t)newHeight, bitmapSourceDC, 0, 0, 0xcc0020);
 
         return;
     }
     if (local_c != 0) {
-        // PatBlt(hdc, (int)(short)actorRectLeft, (int)y, (int)newWidth, (int)(short)newHeight, 0xff0062);
+        // PatBlt(hdc, (int)(int32_t)actorRectLeft, (int)y, (int)newWidth, (int)(int32_t)newHeight, 0xff0062);
     }
 }

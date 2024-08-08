@@ -11,53 +11,53 @@ typedef int BOOL;
 typedef void* HDC;
 typedef void* HWND;
 typedef void* HGDIOBJ;
-typedef unsigned long DWORD;
+typedef uint32_t DWORD;
 typedef char* LPCSTR;
 
 #define TRUE 1
 #define FALSE 0
 
-typedef struct _RECT {
-    long left;
-    long top;
-    long right;
-    long bottom;
+typedef struct __attribute__ ((packed, aligned(4))) _RECT  {
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
 } RECT, *PRECT;
 
-typedef struct
+typedef struct __attribute__ ((packed, aligned(4)))
 {
     HDC sheetDC;
     HDC sheetDC_1bpp;
     SDL_Surface* sheet;
-    short sheetYOffset;
-    short width;
-    short height;
-    short totalPixels;
+    int32_t sheetYOffset;
+    int32_t width;
+    int32_t height;
+    int32_t totalPixels;
 } Sprite;
 
-typedef struct PermObject {
+typedef struct __attribute__ ((packed, aligned(4))) PermObject {
     struct Actor* actor;
     Sprite* spritePtr;
-    short spriteIdx;
+    int32_t spriteIdx;
     // 2 bytes padding
     int actorTypeMaybe;
     int actorFrameNo;
-    short maybeX;
-    short maybeY;
-    short unk_0x18;
-    short xVelocity;
-    short yVelocity;
-    short unk_0x1e;
+    int32_t maybeX;
+    int32_t maybeY;
+    int32_t unk_0x18;
+    int32_t xVelocity;
+    int32_t yVelocity;
+    int32_t unk_0x1e;
     int unk_0x20;
 } PermObject;
 
-typedef struct PermObjectList {
+typedef struct __attribute__ ((packed, aligned(4))) PermObjectList {
     struct PermObject* startingObject;
     struct PermObject* nextObject;
     struct PermObject* currentObj;
 } PermObjectList;
 
-typedef struct Actor {
+typedef struct __attribute__ ((packed, aligned(4))) Actor {
     struct Actor* next;
     struct Actor* linkedActor;
     struct Actor* actorPtr;
@@ -69,33 +69,33 @@ typedef struct Actor {
     uint32_t frameNo;
     RECT someRect;
     RECT rect;
-    short xPosMaybe;
-    short yPosMaybe;
-    short isInAir;
-    short HorizontalVelMaybe;
-    short verticalVelocityMaybe;
-    short inAirCounter;
+    int32_t xPosMaybe;
+    int32_t yPosMaybe;
+    int32_t isInAir;
+    int32_t HorizontalVelMaybe;
+    int32_t verticalVelocityMaybe;
+    int32_t inAirCounter;
     uint32_t flags;
 } Actor;
 
-typedef struct
+typedef struct __attribute__ ((packed, aligned(4)))
 {
-    short unk_0;
-    short unk_2;
-    short unk_4;
-    short unk_6;
-    short xRelated;
-    short unk_a;
+    int32_t unk_0;
+    int32_t unk_2;
+    int32_t unk_4;
+    int32_t unk_6;
+    int32_t xRelated;
+    int32_t unk_a;
     uint32_t frameNo;
 } ActorVelStruct;
 
-typedef struct
+typedef struct __attribute__ ((packed, aligned(4)))
 {
     /*HGLOBAL*/ void* soundResource;
     void* soundData;
 } Sound;
 
-typedef struct
+typedef struct __attribute__ ((packed, aligned(4)))
 {
     int leftFrameNo;
     int rightFrameNo;
