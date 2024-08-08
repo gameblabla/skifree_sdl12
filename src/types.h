@@ -17,7 +17,7 @@ typedef char* LPCSTR;
 #define TRUE 1
 #define FALSE 0
 
-typedef struct __attribute__ ((packed, aligned(4))) _RECT  {
+typedef struct __attribute__ ((packed, aligned(4))) _RECT {
     int32_t left;
     int32_t top;
     int32_t right;
@@ -29,25 +29,26 @@ typedef struct __attribute__ ((packed, aligned(4)))
     HDC sheetDC;
     HDC sheetDC_1bpp;
     SDL_Surface* sheet;
-    int32_t sheetYOffset;
-    int32_t width;
-    int32_t height;
-    int32_t totalPixels;
+    int16_t sheetYOffset;
+    int16_t width;
+    int16_t height;
+    int16_t totalPixels;
 } Sprite;
 
 typedef struct __attribute__ ((packed, aligned(4))) PermObject {
     struct Actor* actor;
     Sprite* spritePtr;
-    int32_t spriteIdx;
+    int16_t spriteIdx;
+    int16_t dummy; // Added dummy for proper aligment , Gameblabla
     // 2 bytes padding
     int actorTypeMaybe;
     int actorFrameNo;
-    int32_t maybeX;
-    int32_t maybeY;
-    int32_t unk_0x18;
-    int32_t xVelocity;
-    int32_t yVelocity;
-    int32_t unk_0x1e;
+    int16_t maybeX;
+    int16_t maybeY;
+    int16_t unk_0x18;
+    int16_t xVelocity;
+    int16_t yVelocity;
+    int16_t unk_0x1e;
     int unk_0x20;
 } PermObject;
 
@@ -63,29 +64,32 @@ typedef struct __attribute__ ((packed, aligned(4))) Actor {
     struct Actor* actorPtr;
     struct PermObject* permObject;
     uint16_t spriteIdx2;
+    
     // 2 byte padding TODO check alignment of struct
+    int16_t dummy; // Added dummy for proper aligment , Gameblabla
+    
     Sprite* spritePtr;
     int typeMaybe;
     uint32_t frameNo;
     RECT someRect;
     RECT rect;
-    int32_t xPosMaybe;
-    int32_t yPosMaybe;
-    int32_t isInAir;
-    int32_t HorizontalVelMaybe;
-    int32_t verticalVelocityMaybe;
-    int32_t inAirCounter;
+    int16_t xPosMaybe;
+    int16_t yPosMaybe;
+    int16_t isInAir;
+    int16_t HorizontalVelMaybe;
+    int16_t verticalVelocityMaybe;
+    int16_t inAirCounter;
     uint32_t flags;
 } Actor;
 
 typedef struct __attribute__ ((packed, aligned(4)))
 {
-    int32_t unk_0;
-    int32_t unk_2;
-    int32_t unk_4;
-    int32_t unk_6;
-    int32_t xRelated;
-    int32_t unk_a;
+    int16_t unk_0;
+    int16_t unk_2;
+    int16_t unk_4;
+    int16_t unk_6;
+    int16_t xRelated;
+    int16_t unk_a;
     uint32_t frameNo;
 } ActorVelStruct;
 
