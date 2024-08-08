@@ -17,9 +17,9 @@
 int white_color;
 int WindowOriginalWidth = 0;
 
-int screen_width_dreamcast = 640;
-
-int screen_height_dreamcast = 480;
+int screen_width_dreamcast;
+int timing_input;
+int screen_height_dreamcast;
 
 #ifdef DREAMCAST
 #include <kos.h>
@@ -27,6 +27,7 @@ int screen_height_dreamcast = 480;
 #include <dc/pvr.h>
 #include <dc/sound/sound.h>
 #include <dc/sound/sfxmgr.h>
+
 int keystate_game[8];
 extern void *sq_set16(void *dest, uint32_t c, size_t n);
 extern void *sq_set32(void *dest, uint32_t c, size_t n);
@@ -35,6 +36,7 @@ extern void print_string_menu_center (const char *s,const uint32_t fg_color, con
 #define SE_SOUND_PATH "/cd/snds/"
 
 static sfxhnd_t sfx_dc[11];
+snd_stream_hnd_t shnd;
 int caca_game = 0;
 
 const char sounds_dc[11][32] =
@@ -74,7 +76,10 @@ int main(int argc, char* argv[]) {
 #ifdef DREAMCAST
 
 	caca_game = 0;
-
+	timing_input = 40;
+	screen_width_dreamcast = 640;
+	screen_height_dreamcast = 480;
+		
 	// If no VGA, default to 640x480
 	if(vid_check_cable() == CT_VGA)
 	{
@@ -86,6 +91,9 @@ int main(int argc, char* argv[]) {
 		print_string_menu_center("Choose your video mode",  0xFFFFFFFF, 0x11111111, 16, (uint16_t*)vram_s);
 		print_string_menu_center("> 640x480      ",  0xFFFFFFFF, 0x11111111, 160, (uint16_t*)vram_s);
 		print_string_menu_center("  960x960 (4:3)",  0xFFFFFFFF, 0x11111111, 176, (uint16_t*)vram_s);
+		
+		print_string_menu_center("Port by gameblabla",  0xFFFFFFFF, 0x11111111, 216, (uint16_t*)vram_s);
+		
 		for(;;)
 		{
 			if (!cont)
@@ -138,6 +146,7 @@ int main(int argc, char* argv[]) {
 	{
 		screen_width_dreamcast = 960;
 		screen_height_dreamcast = 960;
+		timing_input = 15;
 	}
 	
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -150,11 +159,6 @@ int main(int argc, char* argv[]) {
 	{
 		if (!sfx_dc[i]) sfx_dc[i] = snd_sfx_load(sounds_dc[i]);	
 	}
-	
-	cdrom_init();
-	
-	
-	
 #endif
 
     // todo
@@ -190,6 +194,15 @@ int main(int argc, char* argv[]) {
     // }
 
     paintStatusWindow(NULL);
+    
+	#ifdef DREAMCAST
+	spu_cdda_volume(15, 15);
+	spu_cdda_pan(31, 31);
+	cdrom_cdda_play(1, 1, 0xF, CDDA_TRACKS);
+	//snd_stream_volume(shnd, 255);
+	////adx_stop();
+	//adx_dec("/cd/track1.adx", 0 );
+	#endif
 
     int is_running = 1;
     int last_timer = SDL_GetTicks();
@@ -654,11 +667,7 @@ int initWindows() {
 	hSkiMainWnd = SDL_SetVideoMode(nWidth, nHeight, GAME_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	white_color = SDL_MapRGB(hSkiMainWnd->format, 255, 255, 255);
 	
-	#ifdef DREAMCAST
-	spu_cdda_volume(63, 63);
-	spu_cdda_pan(63, 63);
-	cdrom_cdda_play(1, 1, 0xF, CDDA_TRACKS);
-	#endif
+
 	
     calculateStatusWindowDimensions(hSkiStatusWnd);
     //statusWindowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, statusWindowTotalTextWidth, statusWindowHeight);
@@ -3591,7 +3600,7 @@ void handleKeydownMessage(SDL_Event* e) {
 		}
 		
 
-		if (timekey > 40)
+		if (timekey > timing_input)
 		{
 			if (keystate_game[KEY_LEFT]) 
 			{

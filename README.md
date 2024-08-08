@@ -2,6 +2,7 @@ Skifree SDL 1.2 for Dreamcast
 
 Simple Skifree port for the Sega Dreamcast. Supports only controllers for now.
 Performance is OK but could be better.
+Supports 2 resolutions with VGA : 640x480 (default) and 960x960 (only for OSSC/DCHDMI).
 
 ### Compiling
 

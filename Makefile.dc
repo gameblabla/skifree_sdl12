@@ -3,7 +3,7 @@ CC	= kos-cc
 CFLAGS = -D_SDL -DDREAMCAST -DGCW0 -DNOEXIT -O3 -fomit-frame-pointer -flto -fipa-pta -freorder-blocks-algorithm=simple -m4-single-only -fdata-sections -ffunction-sections -Isrc -std=gnu99 -DGCW0 -Isrc -I. -flto -Iresources
 CFLAGS +=  -DDREAMCAST -Isrc -std=gnu99 -Isrc -I. -flto -Iresources -Wcast-align
 CFLAGS += -I/opt/toolchains/dc/kos-ports/SDL/inst/include/ -I/opt/toolchains/dc/kos-ports/SDL_ttf/inst/include/
-LDFLAGS = -lc -lm -lSDL  -s -flto -Wl,--as-needed -Wl,--gc-sections
+LDFLAGS = -lc -lm -lSDL -s -flto -Wl,--as-needed -Wl,--gc-sections
 
 DEFINES = -Wall
 OUTPUT = free.elf
@@ -27,8 +27,8 @@ pack:
 	sh-elf-objcopy -R .stack -O binary $(OUTPUT) main.bin
 	${KOS_BASE}/utils/scramble/scramble main.bin ./cd/1ST_READ.BIN
 	makeip ip.txt IP.BIN
-	mkisofs -C 0,$(shell lbacalc track1.raw) -V SKIFREE -G IP.BIN -joliet -rock -l -o "skifree.iso" ./cd
-	mds4dc -c skifree.mds skifree.iso track1.raw 
+	mkisofs -C 0,$(shell lbacalc track1.raw) -V SKIFREE -G IP.BIN -joliet -rock -l -o "disc.iso" ./cd
+	mds4dc -c disc.mds disc.iso track1.raw
 	
 pack_emu:
 	rm -f IP.BIN
